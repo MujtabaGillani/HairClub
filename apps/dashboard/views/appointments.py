@@ -91,7 +91,10 @@ class AppointmentDetailView(VendorRequiredMixin, DetailView):
         )
         return super().get_context_data(
             nav="appointments",
-            status_form=AppointmentStatusForm(allowed=appointment.allowed_transitions),
+            status_form=AppointmentStatusForm(
+                allowed=appointment.allowed_transitions,
+                initial={"amount_charged": appointment.service.starting_price},
+            ),
             customer_whatsapp_url=customer_whatsapp_url(appointment),
             notify_whatsapp_url=self.request.session.pop("notify_whatsapp", None),
             history=history,
@@ -106,11 +109,16 @@ class AppointmentStatusView(VendorRequiredMixin, View):
         appointment = get_object_or_404(Appointment, reference=reference)
         form = AppointmentStatusForm(request.POST, allowed=appointment.allowed_transitions)
         if not form.is_valid():
-            messages.error(request, "Please choose a valid status.")
+            errors = form.errors.get("amount_charged") or ["Please choose a valid status."]
+            messages.error(request, errors[0])
             return redirect("dashboard:appointment_detail", reference=reference)
         try:
             appointment = change_appointment_status(
-                appointment, form.cleaned_data["status"], user=request.user, note=form.cleaned_data["note"]
+                appointment,
+                form.cleaned_data["status"],
+                user=request.user,
+                note=form.cleaned_data["note"],
+                amount_charged=form.cleaned_data.get("amount_charged"),
             )
         except InvalidTransition as exc:
             messages.error(request, str(exc))

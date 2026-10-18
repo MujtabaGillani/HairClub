@@ -1,0 +1,56 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}Expenses{% endblock %}
+{% block heading %}Expenses{% endblock %}
+{% block actions %}<a href="{% url 'dashboard:expense_create' %}" class="btn btn-dark btn-sm btn-add" aria-label="Add expense"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Add expense</span></a>{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-wallet2"></i></div><div><div class="kpi-label">{% if request.GET.month or request.GET.category or request.GET.q %}Filtered total{% else %}All-time total{% endif %}</div><div class="kpi-value">{{ filtered_total|money }}</div><div class="kpi-sub">{{ paginator.count }} entr{{ paginator.count|pluralize:"y,ies" }}</div></div></div></div>
+  {% for row in by_category|slice:":3" %}
+    <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-tag"></i></div><div><div class="kpi-label">{{ row.category__name }}</div><div class="kpi-value">{{ row.total|money }}</div></div></div></div>
+  {% endfor %}
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <form method="get" class="filter-bar flex-grow-1" role="search">
+      <input type="month" name="month" value="{{ request.GET.month }}" class="form-control w-auto" aria-label="Month" data-autosubmit>
+      <select name="category" class="form-select w-auto" aria-label="Category" data-autosubmit>
+        <option value="">All categories</option>
+        {% for c in filter_form.fields.category.queryset %}<option value="{{ c.pk }}" {% if request.GET.category == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+      <input type="search" name="q" value="{{ request.GET.q }}" class="form-control search-input" placeholder="Description or paid to…" aria-label="Search expenses">
+      <button class="btn btn-outline-dark btn-sm" type="submit">Filter</button>
+      {% if request.GET %}<a href="{% url 'dashboard:expense_list' %}" class="small">Clear</a>{% endif %}
+    </form>
+    <a href="{% url 'dashboard:finance' %}" class="small"><i class="bi bi-graph-up-arrow me-1"></i>Profit &amp; loss</a>
+  </div>
+  {% if expenses %}
+  <div class="table-responsive">
+    <table class="table align-middle table-stack">
+      <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid to</th><th>Method</th><th class="text-end">Amount</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for e in expenses %}
+          <tr>
+            <td data-label="Date" class="text-nowrap">{{ e.date|date:"j M Y" }}</td>
+            <td data-main><a href="{% url 'dashboard:expense_update' e.pk %}" class="fw-semibold text-reset">{{ e.description }}</a>{% if e.notes %}<div class="small text-muted text-truncate note-preview" title="{{ e.notes }}">{{ e.notes }}</div>{% endif %}</td>
+            <td data-label="Category"><span class="badge bg-body-tertiary text-body border"><i class="bi bi-{{ e.category.icon }} me-1"></i>{{ e.category.name }}</span></td>
+            <td data-label="Paid to">{{ e.paid_to|default:"—" }}</td>
+            <td data-label="Method" class="small text-muted">{{ e.get_payment_method_display }}</td>
+            <td data-label="Amount" class="text-end fw-semibold text-nowrap">{{ e.amount|money }}</td>
+            <td data-actions class="text-end text-nowrap">
+              <a href="{% url 'dashboard:expense_update' e.pk %}" class="btn btn-sm btn-icon btn-outline-dark" title="Edit" aria-label="Edit {{ e.description }}"><i class="bi bi-pencil"></i></a>
+              <a href="{% url 'dashboard:expense_delete' e.pk %}" class="btn btn-sm btn-icon btn-outline-danger" title="Delete" aria-label="Delete {{ e.description }}"><i class="bi bi-trash3"></i></a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-wallet2"></i></div><h2 class="h5">No expenses found</h2><p class="text-muted">Record salaries, rent, utilities and other running costs to see your real profit.</p><a href="{% url 'dashboard:expense_create' %}" class="btn btn-dark">Add expense</a></div>
+  {% endif %}
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}

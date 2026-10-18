@@ -19,6 +19,7 @@ from apps.accounts.models import Role, User
 from apps.appointments.models import Appointment, Service
 from apps.catalog.models import Category, Product, ProductImage
 from apps.core.models import SiteSettings
+from apps.finance.models import Expense, ExpenseCategory
 from apps.inventory.models import MovementReason, StockMovement
 from apps.inventory.services import adjust_stock
 from apps.orders.models import Order, OrderEvent, OrderItem, PaymentMethod
@@ -87,7 +88,7 @@ PRODUCTS = [
         12,
         True,
         True,
-        "HairClub Pro",
+        "Safa Hair Pro",
         "Virtually invisible poly skin base for the most natural hairline.",
         'Base: 0.03mm poly skin\nHair type: 100% Remy human hair\nSize: 8" × 10"\n'
         "Density: 110% medium-light\nLifespan: 2–3 months",
@@ -100,7 +101,7 @@ PRODUCTS = [
         8,
         True,
         True,
-        "HairClub Pro",
+        "Safa Hair Pro",
         "Breathable French lace with a bleached-knot front for summer comfort.",
         'Base: Swiss/French lace\nHair type: 100% Remy human hair\nSize: 8" × 10"\nDensity: 120%\nLifespan: 4–6 months',
     ),
@@ -112,7 +113,7 @@ PRODUCTS = [
         4,
         True,
         False,
-        "HairClub",
+        "Safa Hair",
         "Durable fine mono base, ideal for first-time wearers.",
         'Base: Fine mono with poly perimeter\nHair type: Indian Remy\nSize: 7" × 9"\nLifespan: 6–12 months',
     ),
@@ -124,7 +125,7 @@ PRODUCTS = [
         3,
         False,
         True,
-        "HairClub Bespoke",
+        "Safa Hair Bespoke",
         "Made to your exact template, colour and density. Price depends on specification.",
         "Base: Your choice\nHair type: European or Indian Remy\nLead time: 4–6 weeks",
     ),
@@ -160,7 +161,7 @@ PRODUCTS = [
         25,
         True,
         False,
-        "HairClub Care",
+        "Safa Hair Care",
         "Gentle daily cleanser that protects colour and adhesive bonds.",
         "Volume: 300ml\nSulfate-free: Yes\nSuitable for: All hair systems",
     ),
@@ -172,7 +173,7 @@ PRODUCTS = [
         0,
         True,
         False,
-        "HairClub Care",
+        "Safa Hair Care",
         "Restores softness and movement to human-hair systems.",
         "Volume: 300ml\nKey ingredients: Argan oil, keratin",
     ),
@@ -184,7 +185,7 @@ PRODUCTS = [
         18,
         True,
         True,
-        "HairClub Studio",
+        "Safa Hair Studio",
         "Medium hold, zero shine: the secret to a natural-looking system.",
         "Hold: Medium\nFinish: Matte\nWeight: 85g",
     ),
@@ -196,7 +197,7 @@ PRODUCTS = [
         30,
         True,
         False,
-        "HairClub",
+        "Safa Hair",
         "Wide-spaced soft bristles that detangle without stressing knots.",
         "",
     ),
@@ -233,7 +234,7 @@ def make_image(title: str, variant: int) -> ContentFile:
         w = draw.textlength(text, font=font)
         draw.text(((900 - w) / 2, y), text, fill=fg, font=font)
         y += 68
-    label = "HAIRCLUB"
+    label = "SAFA HAIR"
     draw.text(((900 - draw.textlength(label, font=small)) / 2, 790), label, fill=fg, font=small)
     buffer = io.BytesIO()
     img.save(buffer, format="JPEG", quality=85)
@@ -245,7 +246,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        Site.objects.update_or_create(pk=1, defaults={"domain": "localhost:8000", "name": "HairClub"})
+        Site.objects.update_or_create(pk=1, defaults={"domain": "localhost:8000", "name": "Safa Hair"})
         SiteSettings.load()
 
         categories = {}
@@ -296,13 +297,17 @@ class Command(BaseCommand):
                 adjust_stock(product, stock, MovementReason.INITIAL, note="Demo data")
             created += 1
 
+        apply_demo_costs()  # before orders, so each sale snapshots a real cost
         appointments = 0 if Appointment.objects.exists() else seed_appointments()
         orders = 0 if Order.objects.exists() else seed_orders()
+        fill_finance_gaps()
+        expenses = 0 if Expense.objects.exists() else seed_expenses()
 
         if options["verbosity"]:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Demo data ready ({created} new products, {appointments} appointments, {orders} orders)."
+                    f"Demo data ready ({created} new products, {appointments} appointments, "
+                    f"{orders} orders, {expenses} expenses)."
                 )
             )
 
@@ -443,6 +448,7 @@ def seed_appointments() -> int:
             vendor_note=internal,
             handled_by=vendor if status != "pending" else None,
             status_changed_at=requested + timedelta(hours=2) if status != "pending" else None,
+            amount_charged=(service.starting_price or Decimal("0")) if status == "completed" else None,
         )
         # created_at is auto_now_add; backdate it so lists look realistic.
         Appointment.objects.filter(pk=appointment.pk).update(created_at=requested)
@@ -486,6 +492,7 @@ def seed_orders() -> int:
                 unit_price=product.final_price,
                 quantity=qty,
                 line_total=product.final_price * qty,
+                unit_cost=product.unit_cost,
             )
             adjust_stock(product, -qty, MovementReason.SALE, reference=order.number)
         OrderEvent.objects.create(order=order, status="pending", note="Order placed")
@@ -501,6 +508,87 @@ def seed_orders() -> int:
         StockMovement.objects.filter(reference=order.number).update(reference=number)
         Order.objects.filter(pk=order.pk).update(created_at=placed, number=number)
         for step, event in enumerate(order.events.order_by("pk")):
-            OrderEvent.objects.filter(pk=event.pk).update(created_at=placed + timedelta(hours=20 * step))
+            when = placed + timedelta(hours=20 * step)
+            OrderEvent.objects.filter(pk=event.pk).update(created_at=when)
+            if event.status == "delivered":
+                Order.objects.filter(pk=order.pk).update(delivered_at=when)
+        count += 1
+    return count
+
+
+# --- Finance demo data ---------------------------------------------------------
+
+# Per-unit landed cost: (buying cost, shipping/import, other)
+PRODUCT_COSTS = {
+    "Ultra-Thin Skin Hair Patch 0.03mm": (17000, 2500, 500),
+    "French Lace Hair System": (21000, 2500, 500),
+    "Mono Base Hair Patch": (14000, 2000, 500),
+    "Custom-Made Hair System": (32000, 4000, 1000),
+    "Ultra Hold Liquid Adhesive 1.4oz": (2100, 300, 100),
+    "Lace Front Support Tape (72 pcs)": (1100, 150, 50),
+    "Sulfate-Free System Shampoo 300ml": (900, 150, 80),
+    "Deep Moisture Conditioner 300ml": (1000, 150, 80),
+    "Matte Texture Clay 85g": (650, 100, 60),
+    "Soft-Bristle System Brush": (550, 80, 40),
+}
+
+# (day of month, category, description, paid to, amount, payment method)
+MONTHLY_EXPENSES = [
+    (1, "Salaries & wages", "Senior stylist salary", "Ali Hassan", 35000, "bank"),
+    (1, "Salaries & wages", "Receptionist salary", "Sana Khan", 25000, "bank"),
+    (5, "Rent", "Studio rent", "Gulberg Properties", 60000, "bank"),
+    (8, "Salon supplies", "Towels, capes & cleaning supplies", "Metro", 4000, "cash"),
+    (10, "Utilities", "Electricity bill", "LESCO", 12000, "bank"),
+    (10, "Utilities", "Internet & phone", "PTCL", 3500, "bank"),
+    (12, "Marketing & ads", "Instagram & Facebook ads", "Meta", 10000, "card"),
+    (15, "Food & refreshments", "Staff lunch, tea & client refreshments", "", 4500, "cash"),
+    (25, "Courier & delivery", "Monthly courier invoice", "TCS", 3200, "bank"),
+]
+ONE_OFF_EXPENSES = [  # (months ago, day, category, description, paid to, amount, method)
+    (1, 20, "Entertainment", "Team dinner", "Monal", 7000, "card"),
+    (1, 22, "Equipment & repairs", "Hair dryer replacement", "Hafeez Centre", 8500, "cash"),
+]
+
+
+def apply_demo_costs() -> None:
+    """Give demo products a landed cost, without touching costs someone already entered."""
+    for name, (buy, ship, other) in PRODUCT_COSTS.items():
+        Product.objects.filter(name=name, purchase_cost=0, inbound_shipping_cost=0, other_cost=0).update(
+            purchase_cost=Decimal(buy), inbound_shipping_cost=Decimal(ship), other_cost=Decimal(other)
+        )
+
+
+def fill_finance_gaps() -> None:
+    """Upgrade demo data created before finance existed: line costs and service amounts."""
+    for item in OrderItem.objects.filter(unit_cost=0, product__name__in=PRODUCT_COSTS).select_related("product"):
+        item.unit_cost = item.product.unit_cost
+        item.save(update_fields=["unit_cost"])
+    for appt in Appointment.objects.filter(status="completed", amount_charged__isnull=True).select_related("service"):
+        appt.amount_charged = appt.service.starting_price or Decimal("0")
+        appt.save(update_fields=["amount_charged"])
+
+
+def seed_expenses() -> int:
+    categories = {c.name: c for c in ExpenseCategory.objects.all()}
+    vendor = _demo_vendor()
+    today = timezone.localdate()
+    this_month = today.replace(day=1)
+    last_month = (this_month - timedelta(days=1)).replace(day=1)
+    rows = [(month, *row) for month in (last_month, this_month) for row in MONTHLY_EXPENSES]
+    rows += [(last_month if ago == 1 else this_month, *row) for ago, *row in ONE_OFF_EXPENSES]
+    count = 0
+    for month, day, category, description, paid_to, amount, method in rows:
+        when = month.replace(day=day)
+        if when > today or category not in categories:
+            continue
+        Expense.objects.create(
+            date=when,
+            category=categories[category],
+            amount=Decimal(amount),
+            description=f"{description} – {when:%B}",
+            paid_to=paid_to,
+            payment_method=method,
+            created_by=vendor,
+        )
         count += 1
     return count

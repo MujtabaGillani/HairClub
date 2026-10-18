@@ -114,6 +114,32 @@ class Product(TimeStampedModel):
         help_text="When hidden, shoppers see 'Price on request' and must enquire on WhatsApp.",
     )
 
+    # Landed cost per unit (vendor-only). Snapshotted onto each order line at sale time.
+    purchase_cost = models.DecimalField(
+        "buying cost",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+        help_text="What you pay the supplier per unit.",
+    )
+    inbound_shipping_cost = models.DecimalField(
+        "shipping / import",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+        help_text="Freight, courier or customs per unit.",
+    )
+    other_cost = models.DecimalField(
+        "other",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0"))],
+        help_text="Packaging, labels, handling per unit.",
+    )
+
     stock = models.PositiveIntegerField(default=0)
     low_stock_threshold = models.PositiveSmallIntegerField(default=5)
 
@@ -159,6 +185,26 @@ class Product(TimeStampedModel):
     @property
     def savings(self) -> Decimal:
         return self.price - self.final_price
+
+    # --- Cost & margin (vendor-only) ---------------------------------------
+    @property
+    def unit_cost(self) -> Decimal:
+        return (self.purchase_cost + self.inbound_shipping_cost + self.other_cost).quantize(TWO_PLACES)
+
+    @property
+    def unit_profit(self) -> Decimal:
+        """Profit per unit at the current selling price (after discount)."""
+        return self.final_price - self.unit_cost
+
+    @property
+    def margin_percent(self) -> Decimal | None:
+        if not self.final_price:
+            return None
+        return (self.unit_profit / self.final_price * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+
+    @property
+    def has_cost(self) -> bool:
+        return self.unit_cost > 0
 
     # --- Availability ------------------------------------------------------
     @property

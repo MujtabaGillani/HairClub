@@ -1,11 +1,11 @@
 {% load core_tags %}
 <div class="topbar d-none d-md-block">
-  <div class="container d-flex justify-content-between align-items-center py-2">
-    <div class="d-flex gap-4">
-      <span><i class="bi bi-geo-alt me-1"></i>{{ site_settings.address }}</span>
-      <span><i class="bi bi-clock me-1"></i>{{ site_settings.opening_time|time:"g:i A" }} – {{ site_settings.closing_time|time:"g:i A" }}</span>
+  <div class="container d-flex justify-content-between align-items-center gap-4 py-2">
+    <div class="d-flex gap-4 min-w-0">
+      <span class="text-truncate" title="{{ site_settings.address }}"><i class="bi bi-geo-alt me-1"></i>{{ site_settings.address }}</span>
+      <span class="d-none d-lg-inline text-nowrap"><i class="bi bi-clock me-1"></i>{{ site_settings.opening_time|time:"g:i A" }} – {{ site_settings.closing_time|time:"g:i A" }}</span>
     </div>
-    <div class="d-flex gap-4">
+    <div class="d-flex gap-4 flex-shrink-0 text-nowrap">
       <a href="tel:{{ site_settings.phone|cut:' ' }}"><i class="bi bi-telephone me-1"></i>{{ site_settings.phone }}</a>
       <a href="{% url 'orders:lookup' %}"><i class="bi bi-truck me-1"></i>Track order</a>
     </div>
@@ -15,8 +15,8 @@
   <nav class="navbar navbar-expand-lg py-2" aria-label="Main navigation">
     <div class="container">
       <a class="navbar-brand" href="{% url 'core:home' %}" aria-label="{{ site_settings.business_name }} home">
-        <span class="brand-mark">H</span>
-        <span class="brand-name">Hair<span>Club</span></span>
+        <span class="brand-mark">S</span>
+        <span class="brand-name">Safa<span> Hair</span></span>
       </a>
 
       <div class="header-actions d-flex align-items-center gap-2 order-lg-3">

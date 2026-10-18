@@ -1,5 +1,5 @@
 /* ==========================================================================
-   HairClub design system
+   Safa Hair design system
    Palette: deep ink + champagne gold on warm cream. Gold is used for accents
    and on dark surfaces; text-on-white uses the darker --hc-gold-700 so it
    meets WCAG AA contrast.
@@ -125,6 +125,7 @@ h1, h2, h3, .display-font {
 h4, h5, h6 { font-weight: 600; }
 .text-muted, .text-body-secondary { color: var(--hc-muted) !important; }
 .text-gold { color: var(--hc-gold-700) !important; }
+.min-w-0 { min-width: 0 !important; }  /* lets flex children truncate/shrink */
 .bg-cream { background: var(--hc-cream) !important; }
 .bg-ink { background: var(--hc-band) !important; color: #fff; }
 .eyebrow {
@@ -219,6 +220,7 @@ h4, h5, h6 { font-weight: 600; }
   background-color: var(--hc-surface);
   color: var(--hc-text);
 }
+.form-select { padding-right: 2.25rem; background-position: right 0.85rem center; }
 .form-control:focus, .form-select:focus, .form-check-input:focus {
   border-color: var(--hc-gold);
   box-shadow: 0 0 0 0.25rem rgba(196, 162, 122, 0.25);

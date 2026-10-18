@@ -1,3 +1,6 @@
+from datetime import date
+from decimal import Decimal
+
 from django import forms
 from django.conf import settings
 
@@ -5,6 +8,8 @@ from apps.appointments.models import AppointmentStatus, Service
 from apps.catalog.models import Category, Product, ProductImage
 from apps.catalog.validators import validate_product_image
 from apps.core.models import SiteSettings, Weekday
+from apps.finance.models import Expense, ExpenseCategory
+from apps.finance.services import PERIOD_CHOICES
 from apps.inventory.models import MovementReason
 from apps.orders.models import OrderStatus
 
@@ -58,6 +63,9 @@ class ProductForm(forms.ModelForm):
             "price",
             "discount_percent",
             "show_price",
+            "purchase_cost",
+            "inbound_shipping_cost",
+            "other_cost",
             "low_stock_threshold",
             "is_active",
             "is_featured",
@@ -72,6 +80,9 @@ class ProductForm(forms.ModelForm):
             ),
             "price": forms.NumberInput(attrs={"step": "0.01", "min": "0.01"}),
             "discount_percent": forms.NumberInput(attrs={"min": 0, "max": 90}),
+            "purchase_cost": forms.NumberInput(attrs={"step": "0.01", "min": "0"}),
+            "inbound_shipping_cost": forms.NumberInput(attrs={"step": "0.01", "min": "0"}),
+            "other_cost": forms.NumberInput(attrs={"step": "0.01", "min": "0"}),
         }
         labels = {"sku": "SKU (optional)", "discount_percent": "Discount %", "is_active": "Published"}
         help_texts = {
@@ -88,6 +99,23 @@ class ProductForm(forms.ModelForm):
         self.fields["remove_images"].queryset = self.instance.images.all() if not is_new else Product.objects.none()
         if not is_new:
             del self.fields["initial_stock"]
+        for name in self.COST_FIELDS:  # optional: blank means "not known yet" and is stored as 0
+            self.fields[name].required = False
+
+    COST_FIELDS = ("purchase_cost", "inbound_shipping_cost", "other_cost")
+
+    def _clean_cost(self, name):
+        value = self.cleaned_data.get(name)
+        return value if value is not None else Decimal("0.00")
+
+    def clean_purchase_cost(self):
+        return self._clean_cost("purchase_cost")
+
+    def clean_inbound_shipping_cost(self):
+        return self._clean_cost("inbound_shipping_cost")
+
+    def clean_other_cost(self):
+        return self._clean_cost("other_cost")
 
     def clean_sku(self):
         sku = (self.cleaned_data.get("sku") or "").strip().upper()
@@ -187,7 +215,20 @@ class StatusChangeForm(forms.Form):
 
 
 class AppointmentStatusForm(StatusChangeForm):
-    pass
+    amount_charged = forms.DecimalField(
+        label="Amount charged",
+        required=False,
+        min_value=0,
+        max_digits=10,
+        decimal_places=2,
+        help_text="Required when completing: what the client paid (0 if free).",
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("status") == AppointmentStatus.COMPLETED and cleaned.get("amount_charged") is None:
+            self.add_error("amount_charged", "Enter the amount charged (0 if it was free).")
+        return cleaned
 
 
 class OrderStatusForm(StatusChangeForm):
@@ -272,3 +313,47 @@ class SiteSettingsForm(forms.ModelForm):
     def save(self, commit=True):
         self.instance.closed_weekdays = ",".join(str(d) for d in sorted(self.cleaned_data.get("closed_days") or []))
         return super().save(commit)
+
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+        fields = ["date", "category", "amount", "description", "paid_to", "payment_method", "notes"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0.01"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+            "description": forms.TextInput(attrs={"placeholder": "e.g. October salary, shop rent, staff lunch"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        qs = ExpenseCategory.objects.active()
+        if self.instance.pk:  # keep the current category selectable even if it was deactivated
+            qs = ExpenseCategory.objects.filter(pk=self.instance.category_id) | qs
+        self.fields["category"].queryset = qs.distinct()
+        self.fields["category"].empty_label = "Select a category"
+
+
+class ExpenseFilterForm(forms.Form):
+    month = forms.CharField(required=False, widget=forms.TextInput(attrs={"type": "month"}))
+    category = forms.ModelChoiceField(
+        queryset=ExpenseCategory.objects.all(), required=False, empty_label="All categories"
+    )
+    q = forms.CharField(required=False)
+
+    def clean_month(self):
+        value = self.cleaned_data.get("month") or ""
+        if not value:
+            return None
+        try:
+            year, month = (int(p) for p in value.split("-"))
+            return date(year, month, 1)
+        except ValueError as exc:
+            raise forms.ValidationError("Choose a valid month.") from exc
+
+
+class FinancePeriodForm(forms.Form):
+    period = forms.ChoiceField(choices=list(PERIOD_CHOICES.items()), required=False)
+    start = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    end = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))

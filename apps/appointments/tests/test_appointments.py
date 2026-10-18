@@ -1,4 +1,5 @@
 from datetime import time, timedelta
+from decimal import Decimal
 from urllib.parse import unquote
 
 from django.test import TestCase
@@ -144,6 +145,6 @@ class StatusTransitionTests(BookingTestCase):
         )
         appt = change_appointment_status(appt, AppointmentStatus.CONFIRMED, note="Called client")
         self.assertIn("Called client", appt.vendor_note)
-        appt = change_appointment_status(appt, AppointmentStatus.COMPLETED)
+        appt = change_appointment_status(appt, AppointmentStatus.COMPLETED, amount_charged=Decimal("5000"))
         with self.assertRaises(InvalidTransition):
             change_appointment_status(appt, AppointmentStatus.PENDING)

@@ -40,17 +40,19 @@ class SiteSettings(models.Model):
     CACHE_KEY = "core:site-settings"
 
     # Brand & contact
-    business_name = models.CharField(max_length=80, default="HairClub")
+    business_name = models.CharField(max_length=80, default="Safa Hair")
     tagline = models.CharField(max_length=160, default="Non-surgical hair replacement specialists")
     whatsapp_number = models.CharField(
         max_length=15,
-        default="923001234567",
+        default="923237073456",
         validators=[whatsapp_number_validator],
         help_text="Receives appointment requests. International format, digits only.",
     )
-    phone = models.CharField(max_length=30, default="+92 300 1234567")
-    email = models.EmailField(default="hello@hairclub.local")
-    address = models.CharField(max_length=255, default="Main Boulevard, Gulberg III, Lahore")
+    phone = models.CharField(max_length=30, default="0323 7073456")
+    email = models.EmailField(default="hello@safahair.local")
+    address = models.CharField(
+        max_length=255, default="72-G, Ground Floor, Raja Center, Main Boulevard Gulberg, Lahore, Pakistan"
+    )
     instagram_url = models.URLField(blank=True)
     facebook_url = models.URLField(blank=True)
     tiktok_url = models.URLField(blank=True)
@@ -87,7 +89,7 @@ class SiteSettings(models.Model):
     )
     bank_transfer_instructions = models.TextField(
         blank=True,
-        default="Bank: Meezan Bank\nAccount title: HairClub\nIBAN: PK00 MEZN 0000 0000 0000 0000\n"
+        default="Bank: Meezan Bank\nAccount title: Safa Hair\nIBAN: PK00 MEZN 0000 0000 0000 0000\n"
         "Please send the payment receipt on WhatsApp with your order number.",
     )
 

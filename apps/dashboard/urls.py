@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import appointments, inventory, orders, overview, products, services, settings
+from .views import appointments, finance, inventory, orders, overview, products, services, settings
 
 app_name = "dashboard"
 
@@ -30,6 +30,12 @@ urlpatterns = [
     path("orders/<str:number>/", orders.OrderDetailView.as_view(), name="order_detail"),
     path("orders/<str:number>/status/", orders.OrderStatusView.as_view(), name="order_status"),
     path("orders/<str:number>/mark-paid/", orders.OrderMarkPaidView.as_view(), name="order_mark_paid"),
+    # Finance
+    path("finance/", finance.FinanceOverviewView.as_view(), name="finance"),
+    path("finance/expenses/", finance.ExpenseListView.as_view(), name="expense_list"),
+    path("finance/expenses/new/", finance.ExpenseCreateView.as_view(), name="expense_create"),
+    path("finance/expenses/<int:pk>/edit/", finance.ExpenseUpdateView.as_view(), name="expense_update"),
+    path("finance/expenses/<int:pk>/delete/", finance.ExpenseDeleteView.as_view(), name="expense_delete"),
     # Services & settings
     path("services/", services.ServiceListView.as_view(), name="service_list"),
     path("services/new/", services.ServiceCreateView.as_view(), name="service_create"),

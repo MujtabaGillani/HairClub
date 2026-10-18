@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from apps.catalog.models import Product
 from apps.core.http import actor
@@ -105,6 +106,7 @@ def place_order(*, cart, data: dict, user=None) -> Order:
                     unit_price=unit_price,
                     quantity=qty,
                     line_total=unit_price * qty,
+                    unit_cost=product.unit_cost,
                 )
                 for product, qty, unit_price in snapshot
             ]
@@ -140,11 +142,13 @@ def change_order_status(order: Order, new_status: str, *, user=None, note: str =
         if order.payment_status == PaymentStatus.PAID:
             note = f"{note} (refund required)".strip()
 
-    if new_status == OrderStatus.DELIVERED and order.payment_method == PaymentMethod.COD:
-        order.payment_status = PaymentStatus.PAID
+    if new_status == OrderStatus.DELIVERED:
+        order.delivered_at = timezone.now()  # revenue is recognised on this date
+        if order.payment_method == PaymentMethod.COD:
+            order.payment_status = PaymentStatus.PAID
 
     order.status = new_status
-    order.save(update_fields=["status", "payment_status", "updated_at"])
+    order.save(update_fields=["status", "payment_status", "delivered_at", "updated_at"])
     OrderEvent.objects.create(order=order, status=new_status, note=note[:255], created_by=actor(user))
     return order
 

@@ -9,17 +9,22 @@ register = template.Library()
 
 @register.filter
 def money(value):
-    """Render a price with the configured currency symbol, e.g. ``Rs. 12,500``."""
+    """
+    Render an amount with the currency symbol, e.g. ``Rs. 12,500`` or ``−Rs. 4,200``.
+    A non-breaking space keeps the symbol and number on one line, and negatives
+    use a true minus sign before the symbol.
+    """
     if value in (None, ""):
         return ""
     try:
         amount = Decimal(value)
     except (InvalidOperation, TypeError, ValueError):
         return value
-    formatted = intcomma(f"{amount:.2f}")
+    formatted = intcomma(f"{abs(amount):.2f}")
     if formatted.endswith(".00"):
         formatted = formatted[:-3]
-    return f"{settings.CURRENCY_SYMBOL} {formatted}"
+    sign = "−" if amount < 0 else ""
+    return f"{sign}{settings.CURRENCY_SYMBOL} {formatted}"
 
 
 @register.simple_tag(takes_context=True)

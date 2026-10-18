@@ -2,7 +2,7 @@
   <div class="container">
     <div class="row g-4">
       <div class="col-lg-4">
-        <a class="navbar-brand mb-3" href="{% url 'core:home' %}"><span class="brand-mark">H</span><span class="brand-name">Hair<span>Club</span></span></a>
+        <a class="navbar-brand mb-3" href="{% url 'core:home' %}"><span class="brand-mark">S</span><span class="brand-name">Safa<span> Hair</span></span></a>
         <p class="mt-3 pe-lg-4">{{ site_settings.tagline }}. Natural-looking, confidence-restoring results without surgery.</p>
         <div class="mt-3">
           {% if site_settings.instagram_url %}<a class="social-link" href="{{ site_settings.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi bi-instagram"></i></a>{% endif %}
@@ -42,6 +42,7 @@
     <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between gap-2">
       <span>&copy; {% now "Y" %} {{ site_settings.business_name }}. All rights reserved.</span>
       <span>Cash on delivery &middot; Bank transfer &middot; Nationwide shipping</span>
+      <span>Designed &amp; developed by Mujtaba Gillani</span>
     </div>
   </div>
 </footer>

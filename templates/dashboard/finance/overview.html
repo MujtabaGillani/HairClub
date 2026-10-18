@@ -1,0 +1,174 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}Profit &amp; loss{% endblock %}
+{% block heading %}Profit &amp; loss{% endblock %}
+{% block actions %}<a href="{% url 'dashboard:expense_create' %}" class="btn btn-dark btn-sm btn-add" aria-label="Add expense"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Add expense</span></a>{% endblock %}
+
+{% block dashboard_content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+  <nav class="tabs-pills" aria-label="Reporting period">
+    {% for key, label in period_choices.items %}{% if key != "custom" %}<a href="?period={{ key }}" class="{% if period.key == key %}active{% endif %}">{{ label }}</a>{% endif %}{% endfor %}
+  </nav>
+  <form method="get" class="filter-bar" aria-label="Custom date range">
+    <input type="hidden" name="period" value="custom">
+    <input type="date" name="start" class="form-control w-auto" value="{{ period.start|date:'Y-m-d' }}" aria-label="From">
+    <span class="text-muted small">to</span>
+    <input type="date" name="end" class="form-control w-auto" value="{{ period.end|date:'Y-m-d' }}" aria-label="To">
+    <button class="btn btn-outline-dark btn-sm" type="submit">Apply</button>
+  </form>
+</div>
+<p class="text-muted small mb-4"><i class="bi bi-calendar3 me-1"></i>{{ period.label }} · {{ period.start|date:"j M Y" }} – {{ period.end|date:"j M Y" }}</p>
+
+{% if report.lines_missing_cost %}
+  <div class="alert alert-warning small d-flex gap-2"><i class="bi bi-exclamation-triangle"></i><div>{{ report.lines_missing_cost }} sold item{{ report.lines_missing_cost|pluralize }} in this period had no cost recorded, so profit is overstated. Add buying costs to your products; future sales will use them.</div></div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-cash-stack"></i></div><div><div class="kpi-label">Revenue</div><div class="kpi-value">{{ report.revenue|money }}</div><div class="kpi-sub">{{ report.orders_delivered }} order{{ report.orders_delivered|pluralize }} · {{ report.services_completed }} service{{ report.services_completed|pluralize }}</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-box-seam"></i></div><div><div class="kpi-label">Gross profit</div><div class="kpi-value">{{ report.gross_profit|money }}</div><div class="kpi-sub">{% if report.gross_margin is not None %}{{ report.gross_margin }}% margin{% else %}No revenue yet{% endif %}</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-wallet2"></i></div><div><div class="kpi-label">Expenses</div><div class="kpi-value">{{ report.expenses_total|money }}</div><div class="kpi-sub"><a href="{% url 'dashboard:expense_list' %}">View expenses</a></div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon {% if report.net_profit < 0 %}red{% else %}green{% endif %}"><i class="bi {% if report.net_profit < 0 %}bi-arrow-down-right{% else %}bi-arrow-up-right{% endif %}"></i></div><div><div class="kpi-label">Net {% if report.net_profit < 0 %}loss{% else %}profit{% endif %}</div><div class="kpi-value">{{ report.net_profit|money }}</div><div class="kpi-sub">{% if report.net_margin is not None %}{{ report.net_margin }}% of revenue{% else %}—{% endif %}</div></div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-7">
+    <div class="panel h-100">
+      <div class="panel-header"><h2>Statement</h2><span class="small text-muted">{{ period.label }}</span></div>
+      <div class="panel-body">
+        <table class="table pl-table mb-0">
+          <tbody>
+            <tr><td>Product sales <span class="text-muted small">({{ report.units_sold }} unit{{ report.units_sold|pluralize }})</span></td><td class="text-end">{{ report.product_sales|money }}</td></tr>
+            <tr><td>Shipping charged to customers</td><td class="text-end">{{ report.shipping_income|money }}</td></tr>
+            <tr><td>Service income <span class="text-muted small">({{ report.services_completed }} completed)</span></td><td class="text-end">{{ report.service_revenue|money }}</td></tr>
+            <tr class="pl-subtotal"><td>Total revenue</td><td class="text-end">{{ report.revenue|money }}</td></tr>
+            <tr><td>Cost of goods sold</td><td class="text-end">− {{ report.cost_of_goods|money }}</td></tr>
+            <tr class="pl-subtotal"><td>Gross profit{% if report.gross_margin is not None %} <span class="text-muted small fw-normal">{{ report.gross_margin }}%</span>{% endif %}</td><td class="text-end">{{ report.gross_profit|money }}</td></tr>
+            {% for row in report.expenses_by_category %}
+              <tr><td class="ps-3"><i class="bi bi-{{ row.category__icon }} text-muted me-2"></i>{{ row.category__name }}</td><td class="text-end">− {{ row.total|money }}</td></tr>
+            {% empty %}
+              <tr><td class="ps-3 text-muted">No expenses recorded</td><td class="text-end">− {{ 0|money }}</td></tr>
+            {% endfor %}
+            <tr class="pl-total {% if report.net_profit < 0 %}is-loss{% endif %}"><td>Net {% if report.net_profit < 0 %}loss{% else %}profit{% endif %}</td><td class="text-end">{{ report.net_profit|money }}</td></tr>
+          </tbody>
+        </table>
+        <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Orders count when <strong>delivered</strong>; services when <strong>completed</strong>. Stock purchases are not expenses: their cost is counted when items sell.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Where the money went</h2><a href="{% url 'dashboard:expense_list' %}" class="small">Expenses</a></div>
+      <div class="panel-body">
+        {% for row in report.expenses_by_category %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small mb-1"><span><i class="bi bi-{{ row.category__icon }} me-1 text-muted"></i>{{ row.category__name }}</span><span><strong>{{ row.total|money }}</strong> <span class="text-muted">· {{ row.share }}%</span></span></div>
+            <div class="meter" role="img" aria-label="{{ row.category__name }}: {{ row.share }}% of expenses"><span style="width: {{ row.share }}%"></span></div>
+          </div>
+        {% empty %}
+          <p class="text-muted small mb-0">No expenses in this period. <a href="{% url 'dashboard:expense_create' %}">Record one</a>.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><h2>Not yet counted</h2></div>
+      <div class="panel-body small">
+        <p class="mb-1"><strong>{{ report.pipeline_orders }}</strong> open order{{ report.pipeline_orders|pluralize }} worth <strong>{{ report.pipeline_value|money }}</strong> (pending, confirmed, processing or shipped).</p>
+        <p class="text-muted mb-0">They join revenue once marked delivered.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel mb-4 viz-root">
+  <div class="panel-header">
+    <h2>Revenue vs costs · last 12 months</h2>
+    <div class="viz-legend small" aria-hidden="true">
+      <span><i class="viz-swatch s1"></i>Revenue</span>
+      <span><i class="viz-swatch s2"></i>Costs (goods + expenses)</span>
+    </div>
+  </div>
+  <div class="panel-body">
+    {% if chart.has_data %}
+      <div class="viz-wrap" data-viz>
+        <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" class="viz-svg" role="img" aria-label="Monthly revenue and costs for the last 12 months. Values are listed in the table below.">
+          {% for tick in chart.ticks %}
+            <line x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ tick.y }}" y2="{{ tick.y }}" class="viz-grid"></line>
+            <text x="{{ chart.left|add:'-8' }}" y="{{ tick.y }}" class="viz-tick" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
+          {% endfor %}
+          {% for m in chart.months %}
+            <path d="{{ m.revenue_path }}" class="viz-col s1"></path>
+            <path d="{{ m.costs_path }}" class="viz-col s2"></path>
+            <text x="{{ m.x }}" y="{{ chart.label_y }}" class="viz-tick" text-anchor="middle">{{ m.label }}</text>
+            <rect x="{{ m.band_x }}" y="0" width="{{ m.band_w }}" height="{{ chart.base }}" class="viz-hit" tabindex="0"
+                  data-label="{{ m.month|date:'F Y' }}" data-revenue="{{ m.revenue|money }}" data-costs="{{ m.costs|money }}"
+                  data-cogs="{{ m.cogs|money }}" data-expenses="{{ m.expenses|money }}" data-net="{{ m.net|money }}"
+                  aria-label="{{ m.month|date:'F Y' }}: revenue {{ m.revenue|money }}, costs {{ m.costs|money }}, net {{ m.net|money }}"></rect>
+          {% endfor %}
+          <line x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ chart.base }}" y2="{{ chart.base }}" class="viz-axis"></line>
+        </svg>
+        <div class="viz-tooltip" role="status" hidden></div>
+      </div>
+    {% else %}
+      <p class="text-muted small mb-0">No delivered orders, completed services or expenses in the last 12 months yet.</p>
+    {% endif %}
+
+    <details class="mt-3"{% if not chart.has_data %} hidden{% endif %}>
+      <summary class="small fw-semibold">Show as table</summary>
+      <div class="table-responsive mt-2">
+        <table class="table table-sm align-middle table-stack mb-0 viz-table">
+          <thead><tr><th>Month</th><th class="text-end">Revenue</th><th class="text-end">Cost of goods</th><th class="text-end">Expenses</th><th class="text-end">Net</th></tr></thead>
+          <tbody>
+            {% for m in chart.months %}
+              <tr><td data-main>{{ m.month|date:"F Y" }}</td><td data-label="Revenue" class="text-end">{{ m.revenue|money }}</td><td data-label="Cost of goods" class="text-end">{{ m.cogs|money }}</td><td data-label="Expenses" class="text-end">{{ m.expenses|money }}</td><td data-label="Net" class="text-end fw-semibold">{{ m.net|money }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="panel h-100">
+      <div class="panel-header"><h2>Product profitability</h2><span class="small text-muted">{{ period.label }}</span></div>
+      {% if report.top_products %}
+        <div class="table-responsive">
+          <table class="table align-middle table-stack">
+            <thead><tr><th>Product</th><th class="text-end">Units</th><th class="text-end">Revenue</th><th class="text-end">Cost</th><th class="text-end">Profit</th><th class="text-end">Margin</th></tr></thead>
+            <tbody>
+              {% for row in report.top_products %}
+                <tr>
+                  <td data-main class="fw-medium">{{ row.product_name }}</td>
+                  <td data-label="Units" class="text-end">{{ row.units }}</td>
+                  <td data-label="Revenue" class="text-end">{{ row.revenue|money }}</td>
+                  <td data-label="Cost" class="text-end">{% if row.cost %}{{ row.cost|money }}{% else %}<span class="text-muted" title="No cost recorded">—</span>{% endif %}</td>
+                  <td data-label="Profit" class="text-end fw-semibold">{{ row.profit|money }}</td>
+                  <td data-label="Margin" class="text-end">{% if row.margin is not None %}{{ row.margin }}%{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="panel-body text-muted small">No delivered product sales in this period.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="panel h-100">
+      <div class="panel-header"><h2>Service income</h2></div>
+      <ul class="list-unstyled mb-0">
+        {% for row in report.services_breakdown %}
+          <li class="d-flex justify-content-between align-items-center px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+            <span class="min-w-0 text-truncate me-2">{{ row.service__name }} <span class="text-muted small">× {{ row.count }}</span></span>
+            <strong class="text-nowrap">{{ row.revenue|money }}</strong>
+          </li>
+        {% empty %}
+          <li class="panel-body text-muted small">No completed appointments in this period.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

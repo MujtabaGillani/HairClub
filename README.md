@@ -1,4 +1,4 @@
-# HairClub
+# Safa Hair
 
 Website for a non-surgical hair replacement salon. It has four modules:
 
@@ -7,7 +7,15 @@ Website for a non-surgical hair replacement salon. It has four modules:
 | **Appointments** | Customers choose a treatment, date and an available time slot. The request is saved, then sent to the salon's WhatsApp with every detail pre-filled. Vendors confirm, complete or cancel it from the dashboard and can message the client back on WhatsApp in one click. |
 | **Shop** | Hair patches and products: catalogue with search, filters and sorting; product gallery (up to 7 images); favourites; session cart; checkout as a guest or signed in (email/password or Google); cash on delivery or bank transfer; order tracking. |
 | **Accounts** | Two roles. **Customers** sign up publicly. **Vendors** (salon staff) are created by an admin only. |
-| **Vendor dashboard** | Products (create/edit/delete, 1–7 images, discount, show/hide price, publish, feature) · Inventory (stock levels, low-stock alerts, audited adjustments, stock history) · Appointments (confirm/complete/cancel/no-show) · Orders · Services · Store settings. |
+| **Vendor dashboard** | Products (create/edit/delete, 1–7 images, discount, show/hide price, publish, feature) · Inventory (stock levels, low-stock alerts, audited adjustments, stock history) · Appointments (confirm/complete/cancel/no-show) · Orders · Services · Finance (profit & loss, expenses) · Store settings. |
+
+### Finance (profit & loss)
+
+* **Product costs:** each product has a buying cost, shipping/import cost and other costs per unit. The total, profit per unit and margin are calculated live on the product form.
+* **Cost snapshot:** every order line stores the product's cost at the moment of sale, so editing a cost later never changes past profit.
+* **Revenue recognition:** product sales and shipping charged count when an order is **delivered** (`Order.delivered_at`). Service income counts when an appointment is **completed**; the vendor enters the amount charged at that point.
+* **Expenses:** salaries, rent, utilities, food, entertainment, marketing, courier and so on (categories editable in the Django admin). Stock purchases are *not* expenses; their cost is counted as cost of goods sold when items sell.
+* **Profit & loss page:** for any period it shows revenue, cost of goods sold, gross profit, expenses by category and net profit, plus a 12-month revenue-vs-costs chart, product profitability and open orders not yet counted.
 
 Stack: Django 5.2 LTS · Python 3.12 · django-allauth (Google sign-in) · Bootstrap 5.3 · vanilla JS · SQLite (dev) / PostgreSQL (prod).
 
@@ -38,7 +46,7 @@ python manage.py runserver
 
 ### WhatsApp number, opening hours, shipping fees
 
-These live in **Dashboard → Store settings**, so the salon can change them without a deployment. The WhatsApp number must be in international format, digits only (e.g. `923001234567`).
+These live in **Dashboard → Store settings**, so the salon can change them without a deployment. The WhatsApp number must be in international format, digits only (e.g. `923237073456`).
 
 ---
 

@@ -2,24 +2,24 @@
 {% load core_tags %}
 {% block page_title %}Services{% endblock %}
 {% block heading %}Salon services{% endblock %}
-{% block actions %}<a href="{% url 'dashboard:service_create' %}" class="btn btn-dark btn-sm"><i class="bi bi-plus-lg me-1"></i>Add service</a>{% endblock %}
+{% block actions %}<a href="{% url 'dashboard:service_create' %}" class="btn btn-dark btn-sm btn-add" aria-label="Add service"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Add service</span></a>{% endblock %}
 
 {% block dashboard_content %}
 <p class="text-muted">Services appear on the Treatments page and in the appointment booking form.</p>
 <div class="panel">
   {% if services %}
   <div class="table-responsive">
-    <table class="table align-middle">
+    <table class="table align-middle table-stack">
       <thead><tr><th>Service</th><th>Duration</th><th>Starting price</th><th>Bookings</th><th>Status</th><th class="text-end"></th></tr></thead>
       <tbody>
         {% for service in services %}
           <tr>
-            <td><div class="d-flex align-items-center gap-3"><div class="kpi-icon gold"><i class="bi bi-{{ service.icon }}"></i></div><div><a href="{% url 'dashboard:service_update' service.pk %}" class="fw-semibold text-reset">{{ service.name }}</a><div class="small text-muted">{{ service.short_description|truncatechars:70 }}</div></div></div></td>
-            <td>{{ service.duration_minutes }} min</td>
-            <td>{% if service.starting_price %}{{ service.starting_price|money }}{% else %}<span class="text-muted">On consultation</span>{% endif %}</td>
-            <td>{{ service.appointment_count }}</td>
-            <td>{% if service.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}</td>
-            <td class="text-end"><a href="{% url 'dashboard:service_update' service.pk %}" class="btn btn-sm btn-outline-dark">Edit</a></td>
+            <td data-main><div class="d-flex align-items-center gap-3"><div class="kpi-icon gold"><i class="bi bi-{{ service.icon }}"></i></div><div><a href="{% url 'dashboard:service_update' service.pk %}" class="fw-semibold text-reset">{{ service.name }}</a><div class="small text-muted">{{ service.short_description|truncatechars:70 }}</div></div></div></td>
+            <td data-label="Duration">{{ service.duration_minutes }} min</td>
+            <td data-label="Starting price">{% if service.starting_price %}{{ service.starting_price|money }}{% else %}<span class="text-muted">On consultation</span>{% endif %}</td>
+            <td data-label="Bookings">{{ service.appointment_count }}</td>
+            <td data-label="Status">{% if service.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}</td>
+            <td data-actions class="text-end"><a href="{% url 'dashboard:service_update' service.pk %}" class="btn btn-sm btn-outline-dark">Edit</a></td>
           </tr>
         {% endfor %}
       </tbody>

@@ -1,0 +1,36 @@
+{% extends "dashboard/base.html" %}
+{% block page_title %}{% if object %}Edit expense{% else %}Add expense{% endif %}{% endblock %}
+{% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:expense_list' %}">Expenses</a></li><li class="breadcrumb-item active" aria-current="page">{% if object %}Edit{% else %}New{% endif %}</li></ol></nav>{% endblock %}
+{% block heading %}{% if object %}Edit expense{% else %}Add expense{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="panel"><div class="panel-body">
+        {{ form.description.as_field_group }}
+        <div class="row">
+          <div class="col-md-6">{{ form.category.as_field_group }}</div>
+          <div class="col-md-6">{{ form.paid_to.as_field_group }}</div>
+        </div>
+        {{ form.notes.as_field_group }}
+      </div></div>
+    </div>
+    <div class="col-xl-4">
+      <div class="panel"><div class="panel-body">
+        {{ form.amount.as_field_group }}
+        {{ form.date.as_field_group }}
+        {{ form.payment_method.as_field_group }}
+        <p class="form-text mb-0"><i class="bi bi-info-circle me-1"></i>Don't record stock purchases here. Enter product costs on each product instead; they're counted when items sell.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="sticky-actions d-flex flex-wrap gap-2 justify-content-end">
+    <a href="{% url 'dashboard:expense_list' %}" class="btn btn-outline-dark">Cancel</a>
+    {% if not object %}<button type="submit" name="save_and_add" class="btn btn-outline-dark">Save &amp; add another</button>{% endif %}
+    <button type="submit" class="btn btn-dark"><i class="bi bi-check2 me-1"></i>Save expense</button>
+  </div>
+</form>
+{% endblock %}

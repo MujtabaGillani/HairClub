@@ -1,0 +1,19 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}Delete expense{% endblock %}
+{% block heading %}Delete expense{% endblock %}
+
+{% block dashboard_content %}
+<div class="panel container-narrow">
+  <div class="panel-body text-center p-5">
+    <div class="empty-icon mx-auto mb-3 text-danger"><i class="bi bi-trash3"></i></div>
+    <h2 class="h4">Delete “{{ expense.description }}”?</h2>
+    <p class="text-muted">{{ expense.amount|money }} · {{ expense.category.name }} · {{ expense.date|date:"j M Y" }}. Profit reports will update immediately. This cannot be undone.</p>
+    <form method="post" class="d-flex gap-2 justify-content-center mt-4">
+      {% csrf_token %}
+      <a href="{% url 'dashboard:expense_list' %}" class="btn btn-outline-dark">Cancel</a>
+      <button type="submit" class="btn btn-danger">Yes, delete</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

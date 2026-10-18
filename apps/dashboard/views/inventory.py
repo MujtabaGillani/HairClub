@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import F, Sum
+from django.db.models import DecimalField, ExpressionWrapper, F, Sum
 from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.generic import ListView
@@ -33,11 +33,20 @@ class InventoryListView(VendorRequiredMixin, ListView):
         return qs.order_by("stock", "name")
 
     def get_context_data(self, **kwargs):
-        totals = Product.objects.aggregate(units=Sum("stock"))
+        cost_per_unit = F("purchase_cost") + F("inbound_shipping_cost") + F("other_cost")
+        totals = Product.objects.aggregate(
+            units=Sum("stock"),
+            value=Sum(
+                ExpressionWrapper(
+                    F("stock") * cost_per_unit, output_field=DecimalField(max_digits=14, decimal_places=2)
+                )
+            ),
+        )
         return super().get_context_data(
             nav="inventory",
             categories=Category.objects.all(),
             total_units=totals["units"] or 0,
+            stock_value=totals["value"] or 0,
             low_count=Product.objects.low_stock().count(),
             out_count=Product.objects.out_of_stock().count(),
             product_total=Product.objects.count(),

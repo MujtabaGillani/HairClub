@@ -11,20 +11,20 @@
     <div class="panel mb-4">
       <div class="panel-header"><h2>Items</h2><span class="small text-muted">Placed {{ order.created_at|date:"j M Y, g:i A" }}</span></div>
       <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle table-stack">
           <thead><tr><th>Product</th><th class="text-center">Qty</th><th class="text-end">Unit</th><th class="text-end">Total</th></tr></thead>
           <tbody>
             {% for item in order.items.all %}
               <tr>
-                <td>
+                <td data-main>
                   <div class="d-flex align-items-center gap-3">
                     {% with image=item.product.primary_image %}<img class="table-thumb" src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="">{% endwith %}
                     <div>{% if item.product %}<a href="{% url 'dashboard:product_update' item.product_id %}" class="fw-semibold text-reset">{{ item.product_name }}</a>{% else %}<span class="fw-semibold">{{ item.product_name }}</span> <span class="badge bg-body-tertiary text-body border">deleted</span>{% endif %}<div class="small text-muted">{{ item.sku }}</div></div>
                   </div>
                 </td>
-                <td class="text-center">{{ item.quantity }}</td>
-                <td class="text-end">{{ item.unit_price|money }}</td>
-                <td class="text-end fw-semibold">{{ item.line_total|money }}</td>
+                <td data-label="Qty" class="text-center">{{ item.quantity }}</td>
+                <td data-label="Unit price" class="text-end">{{ item.unit_price|money }}</td>
+                <td data-label="Total" class="text-end fw-semibold">{{ item.line_total|money }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -64,6 +64,18 @@
   </div>
 
   <div class="col-xl-4">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Profitability</h2>{% if order.status != "delivered" %}<span class="small text-muted">counts when delivered</span>{% endif %}</div>
+      <div class="panel-body">
+        <dl class="cost-summary mb-0">
+          <div><dt>Product sales</dt><dd>{{ order.subtotal|money }}</dd></div>
+          <div><dt>Cost of goods</dt><dd>− {{ order.cost_of_goods|money }}</dd></div>
+          <div class="{% if order.gross_profit < 0 %}is-loss{% endif %}"><dt>Gross profit</dt><dd>{{ order.gross_profit|money }}</dd></div>
+        </dl>
+        {% if not order.cost_of_goods %}<p class="form-text mb-0 mt-2">No cost was recorded for these items when the order was placed.</p>{% endif %}
+      </div>
+    </div>
+
     <div class="panel mb-4">
       <div class="panel-header"><h2>Payment</h2><span class="badge text-bg-{{ order.payment_status|status_badge }}">{{ order.get_payment_status_display }}</span></div>
       <div class="panel-body">

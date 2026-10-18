@@ -21,18 +21,18 @@
   </div>
   {% if orders %}
   <div class="table-responsive">
-    <table class="table align-middle">
+    <table class="table align-middle table-stack">
       <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for order in orders %}
           <tr>
-            <td><a href="{% url 'dashboard:order_detail' order.number %}" class="fw-semibold">{{ order.number }}</a><div class="small text-muted">{{ order.created_at|date:"j M Y, g:i A" }}</div></td>
-            <td>{{ order.full_name }}<div class="small text-muted">{{ order.phone }}{% if not order.user_id %} · guest{% endif %}</div></td>
-            <td>{{ order.units|default:0 }}</td>
-            <td class="fw-semibold text-nowrap">{{ order.total|money }}</td>
-            <td><span class="small">{{ order.get_payment_method_display }}</span><br><span class="badge text-bg-{{ order.payment_status|status_badge }}">{{ order.get_payment_status_display }}</span></td>
-            <td><span class="badge text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span></td>
-            <td class="text-end"><a href="{% url 'dashboard:order_detail' order.number %}" class="btn btn-sm btn-outline-dark">Open</a></td>
+            <td data-main><a href="{% url 'dashboard:order_detail' order.number %}" class="fw-semibold">{{ order.number }}</a><div class="small text-muted">{{ order.created_at|date:"j M Y, g:i A" }}</div></td>
+            <td data-label="Customer">{{ order.full_name }}<div class="small text-muted">{{ order.phone }}{% if not order.user_id %} · guest{% endif %}</div></td>
+            <td data-label="Items">{{ order.units|default:0 }}</td>
+            <td data-label="Total" class="fw-semibold text-nowrap">{{ order.total|money }}</td>
+            <td data-label="Payment"><span class="small">{{ order.get_payment_method_display }}</span><br><span class="badge text-bg-{{ order.payment_status|status_badge }}">{{ order.get_payment_status_display }}</span></td>
+            <td data-label="Status"><span class="badge text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span></td>
+            <td data-actions class="text-end"><a href="{% url 'dashboard:order_detail' order.number %}" class="btn btn-sm btn-outline-dark">Open</a></td>
           </tr>
         {% endfor %}
       </tbody>

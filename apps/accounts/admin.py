@@ -10,5 +10,5 @@ class UserAdmin(DjangoUserAdmin):
     list_filter = ("role", "is_active", "is_staff")
     search_fields = ("email", "first_name", "last_name", "phone")
     ordering = ("-date_joined",)
-    fieldsets = DjangoUserAdmin.fieldsets + (("HairClub", {"fields": ("role", "phone")}),)
-    add_fieldsets = DjangoUserAdmin.add_fieldsets + (("HairClub", {"fields": ("email", "role", "phone")}),)
+    fieldsets = DjangoUserAdmin.fieldsets + (("Safa Hair", {"fields": ("role", "phone")}),)
+    add_fieldsets = DjangoUserAdmin.add_fieldsets + (("Safa Hair", {"fields": ("email", "role", "phone")}),)

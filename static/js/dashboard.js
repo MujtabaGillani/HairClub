@@ -149,17 +149,87 @@
     const priceInput = productForm.querySelector("input[name=price]");
     const discountInput = productForm.querySelector("input[name=discount_percent]");
     const preview = $("[data-price-preview]");
+    const money = (n) => `${currency} ${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+    const num = (name) => Math.max(parseFloat(productForm.querySelector(`input[name=${name}]`)?.value) || 0, 0);
+    const costOut = {
+      unit: $("[data-unit-cost]"),
+      profit: $("[data-unit-profit]"),
+      margin: $("[data-margin]"),
+    };
     function updatePrice() {
       const price = parseFloat(priceInput.value);
       const discount = Math.min(Math.max(parseInt(discountInput.value || "0", 10) || 0, 0), 90);
-      if (!price || price <= 0) { preview.textContent = "–"; return; }
-      const final = Math.round(price * (100 - discount)) / 100;
-      preview.textContent = `${currency} ${final.toLocaleString("en-US", { maximumFractionDigits: 2 })}` + (discount ? ` (−${discount}%)` : "");
+      const final = price > 0 ? Math.round(price * (100 - discount)) / 100 : 0;
+      preview.textContent = final ? money(final) + (discount ? ` (−${discount}%)` : "") : "–";
+
+      if (!costOut.unit) return;
+      const cost = num("purchase_cost") + num("inbound_shipping_cost") + num("other_cost");
+      costOut.unit.textContent = money(cost);
+      if (!final) { costOut.profit.textContent = costOut.margin.textContent = "–"; return; }
+      const profit = final - cost;
+      costOut.profit.textContent = money(profit);
+      costOut.margin.textContent = `${((profit / final) * 100).toFixed(1)}%`;
+      costOut.profit.closest("div").classList.toggle("is-loss", profit < 0);
     }
-    priceInput.addEventListener("input", updatePrice);
-    discountInput.addEventListener("input", updatePrice);
+    productForm.addEventListener("input", (e) => {
+      if (["price", "discount_percent", "purchase_cost", "inbound_shipping_cost", "other_cost"].includes(e.target.name)) updatePrice();
+    });
     updatePrice();
   }
+
+  /* ---------- Show a field only for one chosen status (e.g. amount when completing) ---------- */
+  $$("[data-show-for-status]").forEach((block) => {
+    const form = block.closest("form");
+    const input = block.querySelector("input");
+    const sync = () => {
+      const chosen = form.querySelector("input[name=status]:checked, select[name=status]")?.value;
+      const show = chosen === block.dataset.showForStatus;
+      block.hidden = !show;
+      input.required = show;
+    };
+    form.addEventListener("change", sync);
+    sync();
+  });
+
+  /* ---------- Finance chart tooltip ---------- */
+  $$("[data-viz]").forEach((wrap) => {
+    const tip = $(".viz-tooltip", wrap);
+    function show(hit) {
+      const d = hit.dataset;
+      tip.innerHTML = "";
+      const title = document.createElement("strong");
+      title.textContent = d.label;
+      tip.appendChild(title);
+      [["s1", "Revenue", d.revenue], ["s2", "Costs", d.costs], ["", "  goods", d.cogs], ["", "  expenses", d.expenses], ["net", "Net", d.net]]
+        .forEach(([key, label, value]) => {
+          const row = document.createElement("div");
+          row.className = "viz-tip-row" + (key === "net" ? " is-net" : "") + (key === "" ? " is-sub" : "");
+          const name = document.createElement("span");
+          if (key === "s1" || key === "s2") { const sw = document.createElement("i"); sw.className = `viz-swatch ${key}`; name.appendChild(sw); }
+          name.append(label.trim());
+          const val = document.createElement("span");
+          val.textContent = value;
+          row.append(name, val);
+          tip.appendChild(row);
+        });
+      tip.hidden = false;
+      // Position in the wrapper's scrolled content, kept inside the visible area.
+      const box = wrap.getBoundingClientRect(), r = hit.getBoundingClientRect();
+      const x = r.left - box.left + wrap.scrollLeft + r.width / 2;
+      const minLeft = wrap.scrollLeft, maxLeft = wrap.scrollLeft + box.width - tip.offsetWidth;
+      const left = Math.min(Math.max(x - tip.offsetWidth / 2, minLeft), maxLeft);
+      tip.style.left = `${left}px`;
+      $$(".viz-hit", wrap).forEach((h) => h.classList.toggle("is-active", h === hit));
+    }
+    function hide() { tip.hidden = true; $$(".viz-hit", wrap).forEach((h) => h.classList.remove("is-active")); }
+    $$(".viz-hit", wrap).forEach((hit) => {
+      hit.addEventListener("mouseenter", () => show(hit));
+      hit.addEventListener("focus", () => show(hit));
+      hit.addEventListener("click", () => show(hit));
+    });
+    wrap.addEventListener("mouseleave", hide);
+    wrap.addEventListener("focusout", (e) => { if (!wrap.contains(e.relatedTarget)) hide(); });
+  });
 
   /* ---------- Stock adjustment modal ---------- */
   const adjustModal = $("#adjustModal");

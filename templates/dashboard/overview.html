@@ -3,25 +3,25 @@
 {% block page_title %}Overview{% endblock %}
 {% block heading %}Good {% now "A" as ampm %}{% if ampm == "AM" %}morning{% else %}day{% endif %}, {{ user.display_name }}{% endblock %}
 {% block actions %}
-  <a href="{% url 'dashboard:product_create' %}" class="btn btn-dark btn-sm"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline">Add product</span></a>
+  <a href="{% url 'dashboard:product_create' %}" class="btn btn-dark btn-sm btn-add" aria-label="Add product"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Add product</span></a>
 {% endblock %}
 
 {% block dashboard_content %}
 <div class="row g-3 mb-4">
-  <div class="col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <a href="{% url 'dashboard:appointment_list' %}?view=pending" class="text-reset text-decoration-none">
       <div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-calendar-event"></i></div><div><div class="kpi-label">Appointments to confirm</div><div class="kpi-value">{{ pending_appointments }}</div><div class="kpi-sub">{{ todays_appointments|length }} booked today</div></div></div>
     </a>
   </div>
-  <div class="col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <a href="{% url 'dashboard:order_list' %}?status=pending" class="text-reset text-decoration-none">
       <div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-receipt"></i></div><div><div class="kpi-label">New orders</div><div class="kpi-value">{{ pending_orders }}</div><div class="kpi-sub">Awaiting confirmation</div></div></div>
     </a>
   </div>
-  <div class="col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-graph-up-arrow"></i></div><div><div class="kpi-label">Sales · last 30 days</div><div class="kpi-value">{{ revenue_30d|money }}</div><div class="kpi-sub">{{ orders_30d }} order{{ orders_30d|pluralize }}</div></div></div>
   </div>
-  <div class="col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <a href="{% url 'dashboard:inventory' %}?stock=low" class="text-reset text-decoration-none">
       <div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-exclamation-triangle"></i></div><div><div class="kpi-label">Stock alerts</div><div class="kpi-value">{{ low_stock_count|add:out_of_stock_count }}</div><div class="kpi-sub">{{ low_stock_count }} low · {{ out_of_stock_count }} out of stock</div></div></div>
     </a>
@@ -33,15 +33,15 @@
     <div class="panel mb-4">
       <div class="panel-header"><h2>Today's appointments</h2><a href="{% url 'dashboard:appointment_list' %}?view=today" class="small">View all</a></div>
       {% if todays_appointments %}
-        <div class="table-responsive"><table class="table align-middle">
+        <div class="table-responsive"><table class="table align-middle table-stack">
           <thead><tr><th>Time</th><th>Client</th><th>Service</th><th>Status</th></tr></thead>
           <tbody>
             {% for appt in todays_appointments %}
               <tr>
-                <td class="fw-semibold text-nowrap">{{ appt.time|time:"g:i A" }}</td>
-                <td><a href="{% url 'dashboard:appointment_detail' appt.reference %}" class="text-reset fw-medium">{{ appt.full_name }}</a><div class="small text-muted">{{ appt.phone }}</div></td>
-                <td>{{ appt.service.name }}</td>
-                <td><span class="badge text-bg-{{ appt.status|status_badge }}">{{ appt.get_status_display }}</span></td>
+                <td data-label="Time" class="fw-semibold text-nowrap">{{ appt.time|time:"g:i A" }}</td>
+                <td data-main><a href="{% url 'dashboard:appointment_detail' appt.reference %}" class="text-reset fw-medium">{{ appt.full_name }}</a><div class="small text-muted">{{ appt.phone }}</div></td>
+                <td data-label="Service">{{ appt.service.name }}</td>
+                <td data-label="Status"><span class="badge text-bg-{{ appt.status|status_badge }}">{{ appt.get_status_display }}</span></td>
               </tr>
             {% endfor %}
           </tbody>
@@ -54,15 +54,15 @@
     <div class="panel">
       <div class="panel-header"><h2>Recent orders</h2><a href="{% url 'dashboard:order_list' %}" class="small">View all</a></div>
       {% if recent_orders %}
-        <div class="table-responsive"><table class="table align-middle">
+        <div class="table-responsive"><table class="table align-middle table-stack">
           <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead>
           <tbody>
             {% for order in recent_orders %}
               <tr>
-                <td><a href="{% url 'dashboard:order_detail' order.number %}" class="fw-semibold">{{ order.number }}</a><div class="small text-muted">{{ order.created_at|timesince }} ago</div></td>
-                <td>{{ order.full_name }}</td>
-                <td class="fw-semibold">{{ order.total|money }}</td>
-                <td><span class="badge text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span></td>
+                <td data-main><a href="{% url 'dashboard:order_detail' order.number %}" class="fw-semibold">{{ order.number }}</a><div class="small text-muted">{{ order.created_at|timesince }} ago</div></td>
+                <td data-label="Customer">{{ order.full_name }}</td>
+                <td data-label="Total" class="fw-semibold">{{ order.total|money }}</td>
+                <td data-label="Status"><span class="badge text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span></td>
               </tr>
             {% endfor %}
           </tbody>

@@ -7,7 +7,7 @@
 {% block dashboard_content %}
 <div class="row g-3 mb-4">
   <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-box-seam"></i></div><div><div class="kpi-label">Products</div><div class="kpi-value">{{ product_total }}</div></div></div></div>
-  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-stack"></i></div><div><div class="kpi-label">Units in stock</div><div class="kpi-value">{{ total_units }}</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-stack"></i></div><div><div class="kpi-label">Units in stock</div><div class="kpi-value">{{ total_units }}</div><div class="kpi-sub">Worth {{ stock_value|money }} at cost</div></div></div></div>
   <div class="col-6 col-xl-3"><a href="?stock=low" class="text-reset text-decoration-none"><div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-exclamation-circle"></i></div><div><div class="kpi-label">Low stock</div><div class="kpi-value">{{ low_count }}</div></div></div></a></div>
   <div class="col-6 col-xl-3"><a href="?stock=out" class="text-reset text-decoration-none"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-x-octagon"></i></div><div><div class="kpi-label">Out of stock</div><div class="kpi-value">{{ out_count }}</div></div></div></a></div>
 </div>
@@ -32,21 +32,21 @@
   </div>
   {% if products %}
   <div class="table-responsive">
-    <table class="table align-middle">
+    <table class="table align-middle table-stack">
       <thead><tr><th>Product</th><th>SKU</th><th>In stock</th><th>Alert at</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
       <tbody>
         {% for product in products %}
           <tr>
-            <td><a href="{% url 'dashboard:product_update' product.pk %}" class="fw-semibold text-reset">{{ product.name }}</a><div class="small text-muted">{{ product.category.name }}</div></td>
-            <td class="small text-muted">{{ product.sku }}</td>
-            <td class="fw-bold fs-6">{{ product.stock }}</td>
-            <td class="text-muted">{{ product.low_stock_threshold }}</td>
-            <td>
+            <td data-main><a href="{% url 'dashboard:product_update' product.pk %}" class="fw-semibold text-reset">{{ product.name }}</a><div class="small text-muted">{{ product.category.name }}</div></td>
+            <td data-label="SKU" class="small text-muted">{{ product.sku }}</td>
+            <td data-label="In stock" class="fw-bold fs-6">{{ product.stock }}</td>
+            <td data-label="Alert at" class="text-muted">{{ product.low_stock_threshold }}</td>
+            <td data-label="Status">
               {% if product.stock_status == "out" %}<span class="badge text-bg-danger">Out of stock</span>
               {% elif product.stock_status == "low" %}<span class="badge text-bg-warning">Low stock</span>
               {% else %}<span class="badge text-bg-success">In stock</span>{% endif %}
             </td>
-            <td class="text-end text-nowrap">
+            <td data-actions class="text-end text-nowrap">
               <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#adjustModal"
                       data-adjust-url="{% url 'dashboard:stock_adjust' product.pk %}" data-product-name="{{ product.name }}" data-product-stock="{{ product.stock }}">
                 <i class="bi bi-plus-slash-minus me-1"></i>Adjust

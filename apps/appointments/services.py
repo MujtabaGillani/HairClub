@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
@@ -153,17 +154,29 @@ def customer_whatsapp_url(appointment: Appointment, site: SiteSettings | None = 
 
 
 @transaction.atomic
-def change_appointment_status(appointment: Appointment, new_status: str, *, user=None, note: str = "") -> Appointment:
+def change_appointment_status(
+    appointment: Appointment,
+    new_status: str,
+    *,
+    user=None,
+    note: str = "",
+    amount_charged: Decimal | None = None,
+) -> Appointment:
     appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
     if new_status not in APPOINTMENT_TRANSITIONS.get(appointment.status, set()):
         raise InvalidTransition(
             f"Cannot change appointment from {appointment.get_status_display()} "
             f"to {AppointmentStatus(new_status).label}."
         )
+    if new_status == AppointmentStatus.COMPLETED and (amount_charged is None or amount_charged < 0):
+        raise InvalidTransition("Enter the amount charged to complete the appointment (0 if it was free).")
     appointment.status = new_status
     appointment.handled_by = actor(user)
     appointment.status_changed_at = timezone.now()
     fields = ["status", "handled_by", "status_changed_at", "updated_at"]
+    if new_status == AppointmentStatus.COMPLETED:
+        appointment.amount_charged = amount_charged
+        fields.append("amount_charged")
     if note:
         stamp = timezone.localtime().strftime("%d %b %H:%M")
         appointment.vendor_note = f"{appointment.vendor_note}\n[{stamp}] {note}".strip()

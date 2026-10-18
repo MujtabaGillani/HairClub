@@ -24,8 +24,9 @@ class WhatsAppTests(TestCase):
 class TemplateTagTests(TestCase):
     @override_settings(CURRENCY_SYMBOL="Rs.")
     def test_money_formatting(self):
-        self.assertEqual(money(Decimal("12500.00")), "Rs. 12,500")
-        self.assertEqual(money(Decimal("99.5")), "Rs. 99.50")
+        self.assertEqual(money(Decimal("12500.00")), "Rs. 12,500")
+        self.assertEqual(money(Decimal("99.5")), "Rs. 99.50")
+        self.assertEqual(money(Decimal("-4200")), "−Rs. 4,200")
         self.assertEqual(money(None), "")
 
 

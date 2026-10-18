@@ -1,4 +1,4 @@
-/* HairClub storefront behaviour. Progressive enhancement: every feature here
+/* Safa Hair storefront behaviour. Progressive enhancement: every feature here
    has a server-rendered fallback, so the site works without JavaScript. */
 (function () {
   "use strict";

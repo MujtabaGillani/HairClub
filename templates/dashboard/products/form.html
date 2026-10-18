@@ -76,6 +76,23 @@
       </div>
 
       <div class="panel mb-4">
+        <div class="panel-header"><h2>Costs <span class="text-muted small fw-normal">· per unit, private</span></h2></div>
+        <div class="panel-body">
+          {{ form.purchase_cost.as_field_group }}
+          <div class="row">
+            <div class="col-6">{{ form.inbound_shipping_cost.as_field_group }}</div>
+            <div class="col-6">{{ form.other_cost.as_field_group }}</div>
+          </div>
+          <dl class="cost-summary mb-0" data-cost-summary aria-live="polite">
+            <div><dt>Total cost</dt><dd data-unit-cost>–</dd></div>
+            <div><dt>Profit per unit</dt><dd data-unit-profit>–</dd></div>
+            <div><dt>Margin</dt><dd data-margin>–</dd></div>
+          </dl>
+          <p class="form-text mb-0 mt-2">Saved on every sale, so profit reports stay accurate even if costs change later.</p>
+        </div>
+      </div>
+
+      <div class="panel mb-4">
         <div class="panel-header"><h2>Inventory</h2>{% if object %}<a href="{% url 'dashboard:product_stock_history' object.pk %}" class="small">Stock history</a>{% endif %}</div>
         <div class="panel-body">
           {{ form.sku.as_field_group }}

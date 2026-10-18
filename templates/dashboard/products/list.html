@@ -2,7 +2,7 @@
 {% load static core_tags %}
 {% block page_title %}Products{% endblock %}
 {% block heading %}Product management{% endblock %}
-{% block actions %}<a href="{% url 'dashboard:product_create' %}" class="btn btn-dark btn-sm"><i class="bi bi-plus-lg me-1"></i>Add product</a>{% endblock %}
+{% block actions %}<a href="{% url 'dashboard:product_create' %}" class="btn btn-dark btn-sm btn-add" aria-label="Add product"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Add product</span></a>{% endblock %}
 
 {% block dashboard_content %}
 <div class="panel">
@@ -28,13 +28,13 @@
 
   {% if products %}
   <div class="table-responsive">
-    <table class="table align-middle">
+    <table class="table align-middle table-stack">
       <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th class="text-center">Published</th><th class="text-center">Show price</th><th class="text-center">Featured</th><th class="text-end">Actions</th></tr></thead>
       <tbody>
         {% for product in products %}
           {% with image=product.primary_image %}
           <tr>
-            <td>
+            <td data-main>
               <div class="d-flex align-items-center gap-3">
                 <img class="table-thumb" src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="">
                 <div class="min-w-0">
@@ -43,27 +43,28 @@
                 </div>
               </div>
             </td>
-            <td class="text-nowrap">
+            <td data-label="Price" class="text-nowrap">
               <span class="fw-semibold">{{ product.final_price|money }}</span>
               {% if product.has_discount %}<div class="small"><span class="text-decoration-line-through text-muted">{{ product.price|money }}</span> <span class="text-danger">-{{ product.discount_percent }}%</span></div>{% endif %}
+              {% if product.has_cost %}<div class="small text-muted">Margin {{ product.margin_percent }}%</div>{% else %}<div class="small text-muted"><i class="bi bi-exclamation-circle me-1"></i>No cost set</div>{% endif %}
             </td>
-            <td><span class="badge text-bg-{% if product.stock_status == 'out' %}danger{% elif product.stock_status == 'low' %}warning{% else %}success{% endif %}">{{ product.stock }}</span></td>
-            <td class="text-center">
+            <td data-label="Stock"><span class="badge text-bg-{% if product.stock_status == 'out' %}danger{% elif product.stock_status == 'low' %}warning{% else %}success{% endif %}">{{ product.stock }}</span></td>
+            <td data-label="Published" class="text-center">
               <form method="post" action="{% url 'dashboard:product_toggle' product.pk 'is_active' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button class="toggle-btn" type="submit" aria-label="Toggle published" title="{% if product.is_active %}Unpublish{% else %}Publish{% endif %}"><i class="bi {% if product.is_active %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
               </form>
             </td>
-            <td class="text-center">
+            <td data-label="Show price" class="text-center">
               <form method="post" action="{% url 'dashboard:product_toggle' product.pk 'show_price' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button class="toggle-btn" type="submit" aria-label="Toggle price visibility" title="{% if product.show_price %}Hide price{% else %}Show price{% endif %}"><i class="bi {% if product.show_price %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
               </form>
             </td>
-            <td class="text-center">
+            <td data-label="Featured" class="text-center">
               <form method="post" action="{% url 'dashboard:product_toggle' product.pk 'is_featured' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button class="toggle-btn" type="submit" aria-label="Toggle featured" title="{% if product.is_featured %}Remove from homepage{% else %}Feature on homepage{% endif %}"><i class="bi {% if product.is_featured %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
               </form>
             </td>
-            <td class="text-end text-nowrap">
+            <td data-actions class="text-end text-nowrap">
               <a href="{{ product.get_absolute_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-icon btn-outline-dark" title="View on site" aria-label="View {{ product.name }} on site"><i class="bi bi-eye"></i></a>
               <a href="{% url 'dashboard:product_update' product.pk %}" class="btn btn-sm btn-icon btn-outline-dark" title="Edit" aria-label="Edit {{ product.name }}"><i class="bi bi-pencil"></i></a>
               <a href="{% url 'dashboard:product_delete' product.pk %}" class="btn btn-sm btn-icon btn-outline-danger" title="Delete" aria-label="Delete {{ product.name }}"><i class="bi bi-trash3"></i></a>

@@ -24,6 +24,7 @@
           <dt>Date</dt><dd class="fw-semibold">{{ appointment.date|date:"l, j F Y" }}</dd>
           <dt>Time</dt><dd class="fw-semibold">{{ appointment.time|time:"g:i A" }}{% if appointment.is_past %} <span class="badge bg-body-tertiary text-body border ms-1">Past</span>{% endif %}</dd>
           <dt>Client notes</dt><dd>{{ appointment.notes|default:"—"|linebreaksbr }}</dd>
+          {% if appointment.amount_charged is not None %}<dt>Amount charged</dt><dd class="fw-semibold">{{ appointment.amount_charged|money }}</dd>{% endif %}
         </dl>
       </div>
     </div>
@@ -70,6 +71,17 @@
                 </label>
               {% endfor %}
             </div>
+            {% if appointment.can_complete %}
+              <div class="mb-3" data-show-for-status="completed">
+                <label class="form-label" for="st-amount">Amount charged <span class="text-danger" aria-hidden="true">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text">{{ currency_symbol }}</span>
+                  <input type="number" class="form-control" id="st-amount" name="amount_charged" min="0" step="0.01"
+                         value="{{ status_form.amount_charged.value|default_if_none:'' }}" aria-describedby="st-amount-help">
+                </div>
+                <div class="form-text" id="st-amount-help">Recorded as service income. Enter 0 if it was free.</div>
+              </div>
+            {% endif %}
             <label class="form-label" for="st-note">Internal note (optional)</label>
             <input type="text" class="form-control mb-3" id="st-note" name="note" maxlength="255" placeholder="Visible to staff only">
             <button type="submit" class="btn btn-dark w-100">Update appointment</button>

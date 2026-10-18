@@ -89,6 +89,12 @@ class Order(TimeStampedModel):
     payment_status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING, db_index=True)
     tracking_number = models.CharField(max_length=60, blank=True)
+    delivered_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Set when the order is delivered; revenue is booked on this date.",
+    )
 
     objects = OrderQuerySet.as_manager()
 
@@ -130,6 +136,16 @@ class Order(TimeStampedModel):
     def is_pickup(self) -> bool:
         return self.shipping_method == ShippingMethod.PICKUP
 
+    # --- Vendor-only profitability -------------------------------------------
+    @property
+    def cost_of_goods(self) -> Decimal:
+        return sum((item.line_cost for item in self.items.all()), Decimal("0.00"))
+
+    @property
+    def gross_profit(self) -> Decimal:
+        """Product sales minus their cost (shipping charged to the customer excluded)."""
+        return self.subtotal - self.cost_of_goods
+
 
 class OrderItem(models.Model):
     """Snapshot of a product at purchase time; survives product edits or deletion."""
@@ -143,12 +159,23 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
     line_total = models.DecimalField(max_digits=12, decimal_places=2)
+    unit_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00"), help_text="Product landed cost at the time of sale."
+    )
 
     class Meta:
         ordering = ["pk"]
 
     def __str__(self):
         return f"{self.quantity} × {self.product_name}"
+
+    @property
+    def line_cost(self) -> Decimal:
+        return self.unit_cost * self.quantity
+
+    @property
+    def line_profit(self) -> Decimal:
+        return self.line_total - self.line_cost
 
 
 class OrderEvent(models.Model):

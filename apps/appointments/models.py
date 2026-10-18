@@ -106,6 +106,13 @@ class Appointment(TimeStampedModel):
         max_length=20, choices=AppointmentStatus.choices, default=AppointmentStatus.PENDING, db_index=True
     )
     vendor_note = models.TextField("internal note", blank=True)
+    amount_charged = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="What the client paid; recorded when the appointment is completed (service revenue).",
+    )
     handled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
@@ -134,6 +141,10 @@ class Appointment(TimeStampedModel):
     @property
     def is_past(self) -> bool:
         return self.starts_at < timezone.now()
+
+    @property
+    def can_complete(self) -> bool:
+        return AppointmentStatus.COMPLETED in APPOINTMENT_TRANSITIONS.get(self.status, set())
 
     @property
     def allowed_transitions(self) -> list[tuple[str, str]]:
