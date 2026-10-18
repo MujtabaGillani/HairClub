@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Treatments | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li><li class="breadcrumb-item active" aria-current="page">Treatments</li></ol></nav>
+    <h1>Treatments</h1>
+    <p class="lead-muted mb-0">Non-surgical hair replacement and maintenance, delivered by specialists in a private studio.</p>
+  </div>
+</section>
+<section class="section-sm pb-5">
+  <div class="container">
+    {% if services %}
+      <div class="row g-4">
+        {% for service in services %}<div class="col-md-6 col-lg-4">{% include "appointments/partials/service_card.html" %}</div>{% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state"><div class="empty-icon"><i class="bi bi-scissors"></i></div><h2 class="h4">Treatments coming soon</h2><p class="text-muted">Message us on WhatsApp to discuss your needs.</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

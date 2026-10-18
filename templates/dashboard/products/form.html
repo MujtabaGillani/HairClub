@@ -1,0 +1,114 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}{% if object %}Edit {{ object.name }}{% else %}Add product{% endif %}{% endblock %}
+{% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:product_list' %}">Products</a></li><li class="breadcrumb-item active" aria-current="page">{% if object %}Edit{% else %}New{% endif %}</li></ol></nav>{% endblock %}
+{% block heading %}{% if object %}{{ object.name }}{% else %}Add product{% endif %}{% endblock %}
+{% block actions %}{% if object %}<a href="{{ object.get_absolute_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-sm"><i class="bi bi-eye me-1"></i>View</a>{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" enctype="multipart/form-data" novalidate data-product-form data-max-images="{{ max_images }}" data-min-images="{{ min_images }}" data-currency="{{ currency_symbol }}">
+  {% csrf_token %}
+  {{ form.primary_image }}
+  {% if form.errors %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-octagon me-1"></i>Please fix the highlighted fields below.{% if form.new_images.errors %} Note: for security, browsers require you to re-select new images after an error.{% endif %}
+      {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Product details</h2></div>
+        <div class="panel-body">
+          {{ form.name.as_field_group }}
+          <div class="row">
+            <div class="col-md-6">{{ form.category.as_field_group }}</div>
+            <div class="col-md-6">{{ form.brand.as_field_group }}</div>
+          </div>
+          {{ form.short_description.as_field_group }}
+          {{ form.description.as_field_group }}
+          {{ form.specifications.as_field_group }}
+        </div>
+      </div>
+
+      <div class="panel mb-4">
+        <div class="panel-header">
+          <h2>Images</h2>
+          <span class="small text-muted"><span data-image-count>{{ form.existing_images|length }}</span> / {{ max_images }} · first or starred image is shown in the shop</span>
+        </div>
+        <div class="panel-body">
+          <div class="image-grid mb-3" data-image-grid>
+            {% for image in form.existing_images %}
+              <div class="image-tile{% if image.is_primary %} is-primary{% endif %}" data-existing-image="{{ image.pk }}">
+                {% if image.is_primary %}<span class="primary-flag">Primary</span>{% endif %}
+                <img src="{{ image.image.url }}" alt="{{ image.alt }}">
+                <div class="tile-actions">
+                  <button type="button" data-make-primary="existing-{{ image.pk }}"><i class="bi bi-star"></i> Primary</button>
+                  <input type="checkbox" class="d-none" name="remove_images" value="{{ image.pk }}" id="rm-{{ image.pk }}" data-remove-image {% if image.pk|stringformat:"s" in form.remove_images.value %}checked{% endif %}>
+                  <label for="rm-{{ image.pk }}"><i class="bi bi-trash3"></i> <span>Remove</span></label>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          <label class="dropzone d-block position-relative" data-dropzone>
+            <input type="file" name="new_images" multiple accept="image/jpeg,image/png,image/webp" data-image-input>
+            <i class="bi bi-cloud-arrow-up fs-2 text-gold"></i>
+            <div class="fw-semibold mt-2">Drop images here or click to upload</div>
+            <div class="small text-muted">{{ form.new_images.help_text }} Up to {{ max_images }} images per product.</div>
+          </label>
+          {% for error in form.new_images.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          <div class="small text-danger mt-2" data-image-error hidden></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Pricing</h2></div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="col-7">{{ form.price.as_field_group }}</div>
+            <div class="col-5">{{ form.discount_percent.as_field_group }}</div>
+          </div>
+          <div class="bg-cream rounded-3 p-3 mb-3 small d-flex justify-content-between"><span class="text-muted">Customer pays</span><strong data-price-preview>{% if object %}{{ object.final_price|money }}{% else %}–{% endif %}</strong></div>
+          {{ form.show_price.as_field_group }}
+        </div>
+      </div>
+
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Inventory</h2>{% if object %}<a href="{% url 'dashboard:product_stock_history' object.pk %}" class="small">Stock history</a>{% endif %}</div>
+        <div class="panel-body">
+          {{ form.sku.as_field_group }}
+          {% if form.initial_stock %}
+            {{ form.initial_stock.as_field_group }}
+          {% else %}
+            <div class="mb-3">
+              <span class="form-label d-block">Current stock</span>
+              <div class="d-flex align-items-center justify-content-between bg-cream rounded-3 p-3">
+                <strong class="fs-4">{{ object.stock }}</strong>
+                <a href="{% url 'dashboard:inventory' %}?q={{ object.sku|urlencode }}" class="btn btn-sm btn-outline-dark">Adjust stock</a>
+              </div>
+              <div class="form-text">Stock changes are made in Inventory so every change is logged.</div>
+            </div>
+          {% endif %}
+          {{ form.low_stock_threshold.as_field_group }}
+        </div>
+      </div>
+
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Visibility</h2></div>
+        <div class="panel-body">
+          {{ form.is_active.as_field_group }}
+          {{ form.is_featured.as_field_group }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky-actions d-flex flex-wrap gap-2 justify-content-end">
+    <a href="{% url 'dashboard:product_list' %}" class="btn btn-outline-dark">Cancel</a>
+    {% if not object %}<button type="submit" name="save_and_add" class="btn btn-outline-dark">Save &amp; add another</button>{% endif %}
+    <button type="submit" class="btn btn-dark"><i class="bi bi-check2 me-1"></i>{% if object %}Save changes{% else %}Create product{% endif %}</button>
+  </div>
+</form>
+{% endblock %}

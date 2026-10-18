@@ -1,0 +1,23 @@
+{% load core_tags %}{% autoescape off %}Hi {{ order.full_name }},
+
+Thank you for shopping with {{ site.business_name }}! We've received your order {{ order.number }}.
+
+{% for item in order.items.all %}- {{ item.quantity }} x {{ item.product_name }} ({{ item.line_total|money }})
+{% endfor %}
+Subtotal: {{ order.subtotal|money }}
+Shipping: {% if order.shipping_cost %}{{ order.shipping_cost|money }}{% else %}Free{% endif %}
+Total:    {{ order.total|money }}
+
+Delivery: {{ order.get_shipping_method_display }}{% if not order.is_pickup %}
+Address:  {{ order.shipping_address }}{% endif %}
+Payment:  {{ order.get_payment_method_display }}
+{% if order.payment_method == "bank_transfer" %}
+{{ site.bank_transfer_instructions }}
+{% endif %}
+We'll contact you on {{ order.phone }} once your order is confirmed.
+
+Questions? WhatsApp us on +{{ site.whatsapp_number }} or reply to this email.
+
+{{ site.business_name }}
+{{ site.address }}
+{% endautoescape %}

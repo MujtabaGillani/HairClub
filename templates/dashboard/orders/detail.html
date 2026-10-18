@@ -1,0 +1,114 @@
+{% extends "dashboard/base.html" %}
+{% load static core_tags %}
+{% block page_title %}Order {{ order.number }}{% endblock %}
+{% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:order_list' %}">Orders</a></li><li class="breadcrumb-item active" aria-current="page">{{ order.number }}</li></ol></nav>{% endblock %}
+{% block heading %}Order {{ order.number }}{% endblock %}
+{% block actions %}<span class="badge fs-6 text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span>{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Items</h2><span class="small text-muted">Placed {{ order.created_at|date:"j M Y, g:i A" }}</span></div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Product</th><th class="text-center">Qty</th><th class="text-end">Unit</th><th class="text-end">Total</th></tr></thead>
+          <tbody>
+            {% for item in order.items.all %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-3">
+                    {% with image=item.product.primary_image %}<img class="table-thumb" src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="">{% endwith %}
+                    <div>{% if item.product %}<a href="{% url 'dashboard:product_update' item.product_id %}" class="fw-semibold text-reset">{{ item.product_name }}</a>{% else %}<span class="fw-semibold">{{ item.product_name }}</span> <span class="badge text-bg-light border">deleted</span>{% endif %}<div class="small text-muted">{{ item.sku }}</div></div>
+                  </div>
+                </td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-end">{{ item.unit_price|money }}</td>
+                <td class="text-end fw-semibold">{{ item.line_total|money }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr><td colspan="3" class="text-end text-muted">Subtotal</td><td class="text-end">{{ order.subtotal|money }}</td></tr>
+            <tr><td colspan="3" class="text-end text-muted">Delivery ({{ order.get_shipping_method_display }})</td><td class="text-end">{% if order.shipping_cost %}{{ order.shipping_cost|money }}{% else %}Free{% endif %}</td></tr>
+            <tr><td colspan="3" class="text-end fw-bold">Total</td><td class="text-end fw-bold fs-5">{{ order.total|money }}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="panel h-100">
+          <div class="panel-header"><h2>Customer</h2>{% if order.user %}<span class="badge text-bg-light border">Registered</span>{% else %}<span class="badge text-bg-light border">Guest</span>{% endif %}</div>
+          <div class="panel-body">
+            <p class="fw-semibold mb-1">{{ order.full_name }}</p>
+            <p class="mb-1 small"><a href="mailto:{{ order.email }}">{{ order.email }}</a></p>
+            <p class="mb-3 small"><a href="tel:{{ order.phone|cut:' ' }}">{{ order.phone }}</a></p>
+            <a href="{{ customer_whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm"><i class="bi bi-whatsapp me-1"></i>WhatsApp customer</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="panel h-100">
+          <div class="panel-header"><h2>Delivery</h2></div>
+          <div class="panel-body small">
+            <p class="fw-semibold mb-1">{{ order.get_shipping_method_display }}</p>
+            {% if order.is_pickup %}<p class="mb-0 text-muted">Customer will collect from the salon.</p>{% else %}<p class="mb-0">{{ order.shipping_address }}</p>{% endif %}
+            {% if order.tracking_number %}<p class="mt-2 mb-0">Tracking: <strong>{{ order.tracking_number }}</strong></p>{% endif %}
+            {% if order.notes %}<hr><p class="mb-0"><i class="bi bi-chat-left-text me-1"></i>{{ order.notes|linebreaksbr }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Payment</h2><span class="badge text-bg-{{ order.payment_status|status_badge }}">{{ order.get_payment_status_display }}</span></div>
+      <div class="panel-body">
+        <p class="mb-3">{{ order.get_payment_method_display }} · <strong>{{ order.total|money }}</strong></p>
+        {% if order.payment_status != "paid" and order.status != "cancelled" %}
+          <form method="post" action="{% url 'dashboard:order_mark_paid' order.number %}" data-confirm="Mark order {{ order.number }} as paid?">{% csrf_token %}
+            <button type="submit" class="btn btn-outline-dark btn-sm w-100"><i class="bi bi-cash-coin me-1"></i>Mark as paid</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Update status</h2></div>
+      <div class="panel-body">
+        {% if order.allowed_transitions %}
+          <form method="post" action="{% url 'dashboard:order_status' order.number %}">
+            {% csrf_token %}
+            <label class="form-label" for="o-status">New status</label>
+            <select class="form-select mb-3" id="o-status" name="status">
+              {% for value, label in order.allowed_transitions %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+            <label class="form-label" for="o-tracking">Tracking number (optional)</label>
+            <input type="text" class="form-control mb-3" id="o-tracking" name="tracking_number" maxlength="60" value="{{ order.tracking_number }}">
+            <label class="form-label" for="o-note">Note (optional)</label>
+            <input type="text" class="form-control mb-3" id="o-note" name="note" maxlength="255">
+            <button type="submit" class="btn btn-dark w-100">Update order</button>
+            <p class="form-text mb-0 mt-2">Cancelling returns all items to stock automatically.</p>
+          </form>
+        {% else %}
+          <p class="text-muted small mb-0">This order is {{ order.get_status_display|lower }}; no further changes are possible.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h2>Timeline</h2></div>
+      <div class="panel-body">
+        <ul class="timeline">
+          {% for event in order.events.all %}
+            <li><strong>{{ event.get_status_display }}</strong>{% if event.note %} <span class="text-muted">· {{ event.note }}</span>{% endif %}<div class="small text-muted">{{ event.created_at|date:"j M Y, g:i A" }}{% if event.created_by %} · {{ event.created_by.get_full_name|default:event.created_by.email }}{% endif %}</div></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

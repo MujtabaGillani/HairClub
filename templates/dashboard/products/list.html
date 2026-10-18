@@ -1,0 +1,82 @@
+{% extends "dashboard/base.html" %}
+{% load static core_tags %}
+{% block page_title %}Products{% endblock %}
+{% block heading %}Product management{% endblock %}
+{% block actions %}<a href="{% url 'dashboard:product_create' %}" class="btn btn-dark btn-sm"><i class="bi bi-plus-lg me-1"></i>Add product</a>{% endblock %}
+
+{% block dashboard_content %}
+<div class="panel">
+  <div class="panel-header">
+    <form method="get" class="filter-bar flex-grow-1" role="search">
+      <input type="search" name="q" value="{{ request.GET.q }}" class="form-control search-input" placeholder="Search name, SKU, brand…" aria-label="Search products">
+      <select name="category" class="form-select w-auto" aria-label="Category" data-autosubmit>
+        <option value="">All categories</option>
+        {% for category in categories %}<option value="{{ category.slug }}" {% if request.GET.category == category.slug %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
+      </select>
+      <select name="status" class="form-select w-auto" aria-label="Status" data-autosubmit>
+        <option value="">All statuses</option>
+        <option value="published" {% if request.GET.status == "published" %}selected{% endif %}>Published</option>
+        <option value="draft" {% if request.GET.status == "draft" %}selected{% endif %}>Unpublished</option>
+        <option value="hidden_price" {% if request.GET.status == "hidden_price" %}selected{% endif %}>Price hidden</option>
+        <option value="on_sale" {% if request.GET.status == "on_sale" %}selected{% endif %}>On sale</option>
+      </select>
+      <button class="btn btn-outline-dark btn-sm" type="submit">Filter</button>
+      {% if request.GET %}<a href="{% url 'dashboard:product_list' %}" class="small">Clear</a>{% endif %}
+    </form>
+    <span class="text-muted small">{{ paginator.count }} product{{ paginator.count|pluralize }}</span>
+  </div>
+
+  {% if products %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th class="text-center">Published</th><th class="text-center">Show price</th><th class="text-center">Featured</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for product in products %}
+          {% with image=product.primary_image %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-3">
+                <img class="table-thumb" src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="">
+                <div class="min-w-0">
+                  <a href="{% url 'dashboard:product_update' product.pk %}" class="fw-semibold text-reset">{{ product.name }}</a>
+                  <div class="small text-muted">{{ product.sku }} · {{ product.category.name }} · {{ product.images.all|length }} image{{ product.images.all|length|pluralize }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="text-nowrap">
+              <span class="fw-semibold">{{ product.final_price|money }}</span>
+              {% if product.has_discount %}<div class="small"><span class="text-decoration-line-through text-muted">{{ product.price|money }}</span> <span class="text-danger">-{{ product.discount_percent }}%</span></div>{% endif %}
+            </td>
+            <td><span class="badge text-bg-{% if product.stock_status == 'out' %}danger{% elif product.stock_status == 'low' %}warning{% else %}success{% endif %}">{{ product.stock }}</span></td>
+            <td class="text-center">
+              <form method="post" action="{% url 'dashboard:product_toggle' product.pk 'is_active' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="toggle-btn" type="submit" aria-label="Toggle published" title="{% if product.is_active %}Unpublish{% else %}Publish{% endif %}"><i class="bi {% if product.is_active %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
+              </form>
+            </td>
+            <td class="text-center">
+              <form method="post" action="{% url 'dashboard:product_toggle' product.pk 'show_price' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="toggle-btn" type="submit" aria-label="Toggle price visibility" title="{% if product.show_price %}Hide price{% else %}Show price{% endif %}"><i class="bi {% if product.show_price %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
+              </form>
+            </td>
+            <td class="text-center">
+              <form method="post" action="{% url 'dashboard:product_toggle' product.pk 'is_featured' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="toggle-btn" type="submit" aria-label="Toggle featured" title="{% if product.is_featured %}Remove from homepage{% else %}Feature on homepage{% endif %}"><i class="bi {% if product.is_featured %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
+              </form>
+            </td>
+            <td class="text-end text-nowrap">
+              <a href="{{ product.get_absolute_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-icon btn-outline-dark" title="View on site" aria-label="View {{ product.name }} on site"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'dashboard:product_update' product.pk %}" class="btn btn-sm btn-icon btn-outline-dark" title="Edit" aria-label="Edit {{ product.name }}"><i class="bi bi-pencil"></i></a>
+              <a href="{% url 'dashboard:product_delete' product.pk %}" class="btn btn-sm btn-icon btn-outline-danger" title="Delete" aria-label="Delete {{ product.name }}"><i class="bi bi-trash3"></i></a>
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-box-seam"></i></div><h2 class="h5">No products found</h2><p class="text-muted">{% if request.GET %}Try adjusting your filters.{% else %}Add your first product to start selling.{% endif %}</p><a href="{% url 'dashboard:product_create' %}" class="btn btn-dark">Add product</a></div>
+  {% endif %}
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}

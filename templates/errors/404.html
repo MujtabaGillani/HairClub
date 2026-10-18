@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Page not found | {{ site_settings.business_name }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container empty-state">
+    <div class="empty-icon"><i class="bi bi-signpost-split"></i></div>
+    <p class="eyebrow">Error 404</p>
+    <h1 class="h2">We couldn't find that page</h1>
+    <p class="text-muted mb-4">The link may be broken or the page may have moved.</p>
+    <div class="d-flex gap-2 justify-content-center flex-wrap">
+      <a href="{% url 'core:home' %}" class="btn btn-dark">Back to home</a>
+      <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-dark">Browse the shop</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

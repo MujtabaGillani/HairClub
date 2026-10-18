@@ -1,0 +1,19 @@
+{% if is_paginated %}
+<nav aria-label="Pagination" class="mt-5">
+  <ul class="pagination justify-content-center flex-wrap">
+    {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?{% querystring page=page_obj.previous_page_number %}" aria-label="Previous page"><i class="bi bi-chevron-left"></i></a></li>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+        <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <li class="page-item"><a class="page-link" href="?{% querystring page=num %}">{{ num }}</a></li>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?{% querystring page=page_obj.next_page_number %}" aria-label="Next page"><i class="bi bi-chevron-right"></i></a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load core_tags %}
+{% block title %}Order {{ order.number }} | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero py-4">
+  <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        {% if user.is_authenticated %}<li class="breadcrumb-item"><a href="{% url 'accounts:orders' %}">My orders</a></li>{% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ order.number }}</li>
+      </ol></nav>
+      <h1 class="h2 mb-0">Order {{ order.number }}</h1>
+      <p class="text-muted mb-0 small">Placed {{ order.created_at|date:"j F Y, g:i A" }}</p>
+    </div>
+    <span class="badge fs-6 text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span>
+  </div>
+</section>
+
+<section class="section-sm">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-8">{% include "orders/partials/order_summary.html" %}</div>
+      <div class="col-lg-4">
+        <div class="hc-card mb-4"><div class="hc-card-body">
+          <h2 class="h6 mb-3">Order progress</h2>
+          <ul class="timeline">
+            {% for event in order.events.all %}
+              <li><strong>{{ event.get_status_display }}</strong>{% if event.note %}<div class="small text-muted">{{ event.note }}</div>{% endif %}<div class="small text-muted">{{ event.created_at|date:"j M Y, g:i A" }}</div></li>
+            {% endfor %}
+          </ul>
+        </div></div>
+        {% if order.can_be_cancelled_by_customer %}
+          <form method="post" action="{% url 'orders:cancel' order.number %}" data-confirm="Cancel order {{ order.number }}? This cannot be undone.">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-x-circle me-1"></i>Cancel order</button>
+          </form>
+        {% endif %}
+        <a href="{{ whatsapp_chat_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark w-100 mt-2"><i class="bi bi-whatsapp me-1"></i>Need help?</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

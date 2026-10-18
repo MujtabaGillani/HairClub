@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}About us | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li><li class="breadcrumb-item active" aria-current="page">About</li></ol></nav>
+    <h1>About {{ site_settings.business_name }}</h1>
+    <p class="lead-muted mb-0">Specialists in non-surgical hair replacement, committed to natural results and complete discretion.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="row g-4 g-lg-5 align-items-center">
+      <div class="col-lg-6">
+        <span class="eyebrow">Our approach</span>
+        <h2 class="section-title">Hair restoration, done respectfully</h2>
+        <p>Hair loss affects confidence in ways that are deeply personal. At {{ site_settings.business_name }} we combine premium hair systems with careful craftsmanship to give you a result that looks, feels and moves like your own hair, with no surgery, medication or downtime.</p>
+        <p>Every client works one-to-one with a specialist in a private studio. We take time to understand your goals, match colour and density precisely, and teach you how to care for your system at home.</p>
+      </div>
+      <div class="col-lg-6">
+        <div class="row g-3">
+          <div class="col-6"><div class="stat-tile h-100"><i class="bi bi-person-check fs-3 text-gold"></i><strong>Personal</strong><span class="text-muted small">One specialist from consultation to aftercare</span></div></div>
+          <div class="col-6"><div class="stat-tile h-100"><i class="bi bi-gem fs-3 text-gold"></i><strong>Premium</strong><span class="text-muted small">Remy human hair, lace and skin bases</span></div></div>
+          <div class="col-6"><div class="stat-tile h-100"><i class="bi bi-eye-slash fs-3 text-gold"></i><strong>Discreet</strong><span class="text-muted small">Private studio, plain packaging</span></div></div>
+          <div class="col-6"><div class="stat-tile h-100"><i class="bi bi-tools fs-3 text-gold"></i><strong>Supported</strong><span class="text-muted small">Maintenance, re-bonding and repairs</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section bg-cream">
+  <div class="container text-center">
+    <h2 class="section-title">Talk to a specialist</h2>
+    <p class="lead-muted mx-auto mb-4">Consultations are private and there's no obligation.</p>
+    <a href="{% url 'appointments:book' %}" class="btn btn-dark btn-lg">Book a consultation</a>
+  </div>
+</section>
+{% endblock %}

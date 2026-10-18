@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Contact | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li><li class="breadcrumb-item active" aria-current="page">Contact</li></ol></nav>
+    <h1>Get in touch</h1>
+    <p class="lead-muted mb-0">The fastest way to reach us is WhatsApp. We usually reply within an hour during opening times.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <div class="feature-icon mx-auto"><i class="bi bi-whatsapp"></i></div>
+          <h3 class="h6">WhatsApp</h3>
+          <p class="text-muted small">+{{ site_settings.whatsapp_number }}</p>
+          <a href="{{ whatsapp_chat_url }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm">Start chat</a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <div class="feature-icon mx-auto"><i class="bi bi-telephone"></i></div>
+          <h3 class="h6">Phone</h3>
+          <p class="text-muted small">{{ site_settings.phone }}</p>
+          <a href="tel:{{ site_settings.phone|cut:' ' }}" class="btn btn-outline-dark btn-sm">Call us</a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <div class="feature-icon mx-auto"><i class="bi bi-envelope"></i></div>
+          <h3 class="h6">Email</h3>
+          <p class="text-muted small text-break">{{ site_settings.email }}</p>
+          <a href="mailto:{{ site_settings.email }}" class="btn btn-outline-dark btn-sm">Send email</a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <div class="feature-icon mx-auto"><i class="bi bi-geo-alt"></i></div>
+          <h3 class="h6">Studio</h3>
+          <p class="text-muted small">{{ site_settings.address }}</p>
+          <a href="https://www.google.com/maps/search/?api=1&query={{ site_settings.address|urlencode }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-sm">Get directions</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="hc-card mt-5">
+      <div class="hc-card-body row g-4 align-items-center">
+        <div class="col-md-8">
+          <h2 class="h4 mb-2">Opening hours</h2>
+          <p class="mb-1"><strong>{{ site_settings.opening_time|time:"g:i A" }} – {{ site_settings.closing_time|time:"g:i A" }}</strong> on {{ site_settings.open_weekday_names|join:", " }}.</p>
+          {% if site_settings.closed_weekday_names %}<p class="text-muted mb-0">Closed on {{ site_settings.closed_weekday_names|join:", " }}.</p>{% endif %}
+        </div>
+        <div class="col-md-4 text-md-end"><a href="{% url 'appointments:book' %}" class="btn btn-dark">Book an appointment</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

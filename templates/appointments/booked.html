@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Booking request ready | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container container-narrow">
+    <div class="hc-card text-center"><div class="hc-card-body p-md-5">
+      <div class="success-icon"><i class="bi bi-calendar-check"></i></div>
+      <h1 class="h3">Almost done, {{ appointment.full_name }}!</h1>
+      <p class="text-muted">Your request has been saved. Send it to us on WhatsApp so our team can confirm your slot.</p>
+      <span class="ref-chip mb-4"><i class="bi bi-hash"></i>{{ appointment.reference }}</span>
+
+      <dl class="row text-start small bg-cream rounded-3 p-3 mx-0 mb-4">
+        <dt class="col-5 text-muted fw-normal">Treatment</dt><dd class="col-7 fw-semibold">{{ appointment.service.name }}</dd>
+        <dt class="col-5 text-muted fw-normal">Date</dt><dd class="col-7 fw-semibold">{{ appointment.date|date:"l, j F Y" }}</dd>
+        <dt class="col-5 text-muted fw-normal">Time</dt><dd class="col-7 fw-semibold">{{ appointment.time|time:"g:i A" }}</dd>
+        <dt class="col-5 text-muted fw-normal mb-0">Status</dt><dd class="col-7 fw-semibold mb-0">Awaiting confirmation</dd>
+      </dl>
+
+      <a href="{{ whatsapp_url }}" class="btn btn-whatsapp btn-lg w-100" data-whatsapp-forward data-seconds="5" rel="noopener"><i class="bi bi-whatsapp me-2"></i>Send on WhatsApp</a>
+      <p class="small text-muted mt-3 mb-0" data-forward-note>Opening WhatsApp in <span data-countdown>5</span>s… <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-cancel-forward>Stay on this page</button></p>
+    </div></div>
+    <p class="text-center mt-4"><a href="{% url 'core:home' %}">Back to home</a>{% if user.is_authenticated %} · <a href="{% url 'accounts:appointments' %}">My appointments</a>{% endif %}</p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "dashboard/base.html" %}
+{% block page_title %}{% if object %}Edit service{% else %}Add service{% endif %}{% endblock %}
+{% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:service_list' %}">Services</a></li><li class="breadcrumb-item active" aria-current="page">{% if object %}Edit{% else %}New{% endif %}</li></ol></nav>{% endblock %}
+{% block heading %}{% if object %}{{ object.name }}{% else %}Add service{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <div class="panel"><div class="panel-body">
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+        {{ form.name.as_field_group }}
+        {{ form.short_description.as_field_group }}
+        {{ form.description.as_field_group }}
+      </div></div>
+    </div>
+    <div class="col-xl-4">
+      <div class="panel"><div class="panel-body">
+        {{ form.duration_minutes.as_field_group }}
+        {{ form.starting_price.as_field_group }}
+        {{ form.icon.as_field_group }}
+        <p class="form-text mt-n2">Browse names at <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener">icons.getbootstrap.com</a> (e.g. <code>stars</code>, <code>scissors</code>, <code>droplet</code>).</p>
+        {{ form.sort_order.as_field_group }}
+        {{ form.is_active.as_field_group }}
+      </div></div>
+    </div>
+  </div>
+  <div class="sticky-actions d-flex gap-2 justify-content-end">
+    <a href="{% url 'dashboard:service_list' %}" class="btn btn-outline-dark">Cancel</a>
+    <button type="submit" class="btn btn-dark"><i class="bi bi-check2 me-1"></i>Save service</button>
+  </div>
+</form>
+{% endblock %}

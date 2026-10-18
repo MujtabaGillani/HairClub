@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{% if current_category %}{{ current_category.name }}{% else %}Shop{% endif %} | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+      {% if current_category %}<li class="breadcrumb-item"><a href="{% url 'catalog:product_list' %}">Shop</a></li><li class="breadcrumb-item active" aria-current="page">{{ current_category.name }}</li>
+      {% else %}<li class="breadcrumb-item active" aria-current="page">Shop</li>{% endif %}
+    </ol></nav>
+    <h1>{% if current_category %}{{ current_category.name }}{% else %}Hair patches &amp; products{% endif %}</h1>
+    <p class="lead-muted mb-0">{% if current_category.description %}{{ current_category.description }}{% else %}Premium hair systems, adhesives and aftercare, chosen by our specialists.{% endif %}</p>
+  </div>
+</section>
+
+<section class="section-sm">
+  <div class="container">
+    <div class="row g-4">
+      <aside class="col-lg-3">
+        <div class="filter-panel">
+          <form method="get" class="mb-4" role="search">
+            {% if current_category %}<input type="hidden" name="category" value="{{ current_category.slug }}">{% endif %}
+            <label for="shopSearch" class="visually-hidden">Search products</label>
+            <div class="input-group">
+              <input type="search" id="shopSearch" name="q" value="{{ query }}" class="form-control" placeholder="Search products…">
+              <button class="btn btn-dark px-3" type="submit" aria-label="Search"><i class="bi bi-search"></i></button>
+            </div>
+          </form>
+
+          <h2 class="h6 text-uppercase text-muted small mb-2">Categories</h2>
+          <ul class="filter-list mb-4">
+            <li><a href="?{% querystring category=None page=None %}" class="{% if not current_category %}active{% endif %}">All products</a></li>
+            {% for category in categories %}
+              <li><a href="?{% querystring category=category.slug page=None %}" class="{% if current_category == category %}active{% endif %}">{{ category.name }}<i class="bi bi-chevron-right small"></i></a></li>
+            {% endfor %}
+          </ul>
+
+          <h2 class="h6 text-uppercase text-muted small mb-2">Filter</h2>
+          <div class="d-grid gap-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="fInStock" {% if request.GET.in_stock == "1" %}checked{% endif %}
+                     data-filter-toggle data-on="?{% querystring in_stock='1' page=None %}" data-off="?{% querystring in_stock=None page=None %}">
+              <label class="form-check-label" for="fInStock">In stock only</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="fSale" {% if request.GET.on_sale == "1" %}checked{% endif %}
+                     data-filter-toggle data-on="?{% querystring on_sale='1' page=None %}" data-off="?{% querystring on_sale=None page=None %}">
+              <label class="form-check-label" for="fSale">On sale</label>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="col-lg-9">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+          <p class="text-muted mb-0">{{ paginator.count }} product{{ paginator.count|pluralize }}{% if query %} for “{{ query }}”{% endif %}</p>
+          <form method="get" class="d-flex align-items-center gap-2">
+            {% for key, value in request.GET.items %}{% if key != "sort" and key != "page" %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+            <label for="sortSelect" class="small text-muted text-nowrap">Sort by</label>
+            <select id="sortSelect" name="sort" class="form-select form-select-sm" data-autosubmit>
+              {% for key, label in sort_options.items %}<option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </form>
+        </div>
+
+        {% if products %}
+          <div class="row g-4">
+            {% for product in products %}
+              <div class="col-6 col-md-4">{% include "partials/product_card.html" %}</div>
+            {% endfor %}
+          </div>
+          {% include "partials/pagination.html" %}
+        {% else %}
+          <div class="empty-state hc-card">
+            <div class="empty-icon"><i class="bi bi-search"></i></div>
+            <h2 class="h4">No products found</h2>
+            <p class="text-muted">Try a different search or clear the filters.</p>
+            <a href="{% url 'catalog:product_list' %}" class="btn btn-dark">Clear filters</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

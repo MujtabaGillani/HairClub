@@ -1,0 +1,64 @@
+{% extends "dashboard/base.html" %}
+{% block page_title %}Store settings{% endblock %}
+{% block heading %}Store settings{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.errors %}<div class="alert alert-danger"><i class="bi bi-exclamation-octagon me-1"></i>Please fix the highlighted fields.</div>{% endif %}
+  <div class="row g-4">
+    <div class="col-xl-6">
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Business &amp; contact</h2></div>
+        <div class="panel-body">
+          {{ form.business_name.as_field_group }}
+          {{ form.tagline.as_field_group }}
+          {{ form.whatsapp_number.as_field_group }}
+          <div class="row">
+            <div class="col-md-6">{{ form.phone.as_field_group }}</div>
+            <div class="col-md-6">{{ form.email.as_field_group }}</div>
+          </div>
+          {{ form.address.as_field_group }}
+        </div>
+      </div>
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Social links</h2></div>
+        <div class="panel-body">
+          {{ form.instagram_url.as_field_group }}
+          {{ form.facebook_url.as_field_group }}
+          {{ form.tiktok_url.as_field_group }}
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Appointments</h2></div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="col-6">{{ form.opening_time.as_field_group }}</div>
+            <div class="col-6">{{ form.closing_time.as_field_group }}</div>
+            <div class="col-md-4">{{ form.slot_interval_minutes.as_field_group }}</div>
+            <div class="col-md-4">{{ form.slot_capacity.as_field_group }}</div>
+            <div class="col-md-4">{{ form.min_booking_notice_hours.as_field_group }}</div>
+          </div>
+          {{ form.closed_days.as_field_group }}
+        </div>
+      </div>
+      <div class="panel mb-4">
+        <div class="panel-header"><h2>Shipping &amp; payment</h2></div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="col-md-4">{{ form.standard_shipping_fee.as_field_group }}</div>
+            <div class="col-md-4">{{ form.express_shipping_fee.as_field_group }}</div>
+            <div class="col-md-4">{{ form.free_shipping_threshold.as_field_group }}</div>
+          </div>
+          {{ form.bank_transfer_instructions.as_field_group }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="sticky-actions d-flex justify-content-end">
+    <button type="submit" class="btn btn-dark"><i class="bi bi-check2 me-1"></i>Save settings</button>
+  </div>
+</form>
+{% endblock %}

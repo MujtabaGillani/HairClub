@@ -1,0 +1,8 @@
+{% load allauth %}{% comment %} djlint:off {% endcomment %}
+{% if "prominent" in attrs.tags %}{% firstof "btn btn-dark btn-lg w-100" as btn_class %}{% elif "danger" in attrs.tags %}{% firstof "btn btn-outline-danger" as btn_class %}{% elif "link" in attrs.tags %}{% firstof "btn btn-link p-0" as btn_class %}{% elif "secondary" in attrs.tags or "outline" in attrs.tags or "cancel" in attrs.tags %}{% firstof "btn btn-outline-dark" as btn_class %}{% else %}{% firstof "btn btn-dark" as btn_class %}{% endif %}
+<{% if attrs.href %}a href="{{ attrs.href }}"{% else %}button{% endif %} class="{{ btn_class }}"
+{% if attrs.form %}form="{{ attrs.form }}"{% endif %}
+{% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+{% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+{% if attrs.value %}value="{{ attrs.value }}"{% endif %}
+{% if attrs.type %}type="{{ attrs.type }}"{% endif %}>{% slot %}{% endslot %}</{% if attrs.href %}a{% else %}button{% endif %}>

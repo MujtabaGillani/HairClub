@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static core_tags %}
+{% block title %}Checkout | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero py-4">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h1 class="mb-0">Checkout</h1>
+    <span class="text-muted small"><i class="bi bi-shield-lock me-1"></i>Secure checkout</span>
+  </div>
+</section>
+
+<section class="section-sm">
+  <div class="container">
+    <form method="post" novalidate data-checkout data-subtotal="{{ cart.subtotal }}" data-currency="{{ currency_symbol }}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="row g-4">
+        <div class="col-lg-7">
+          {% if not user.is_authenticated %}
+            <div class="alert bg-cream border d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <span><i class="bi bi-person me-1"></i>Checking out as a guest.</span>
+              <a href="{% url 'account_login' %}?next={% url 'orders:checkout' %}" class="fw-semibold">Sign in for faster checkout</a>
+            </div>
+          {% endif %}
+
+          <div class="hc-card mb-4"><div class="hc-card-body">
+            <div class="checkout-step"><span class="step-num">1</span>Contact details</div>
+            <div class="row">
+              <div class="col-12">{{ form.full_name.as_field_group }}</div>
+              <div class="col-md-6">{{ form.email.as_field_group }}</div>
+              <div class="col-md-6">{{ form.phone.as_field_group }}</div>
+            </div>
+          </div></div>
+
+          <div class="hc-card mb-4"><div class="hc-card-body">
+            <div class="checkout-step"><span class="step-num">2</span>Delivery</div>
+            <div class="d-grid gap-2 mb-4" role="radiogroup" aria-label="Delivery method">
+              {% for option in shipping_options %}
+                <label class="option-card">
+                  <input class="form-check-input" type="radio" name="shipping_method" value="{{ option.value }}" data-cost="{{ option.cost }}" {% if form.shipping_method.value == option.value %}checked{% endif %}>
+                  <span class="flex-grow-1">{{ option.label }}</span>
+                  <strong>{% if option.cost %}{{ option.cost|money }}{% else %}Free{% endif %}</strong>
+                </label>
+              {% endfor %}
+              {% for error in form.shipping_method.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            </div>
+            <div data-address-block>
+              <div class="row">
+                <div class="col-12">{{ form.address_line1.as_field_group }}</div>
+                <div class="col-12">{{ form.address_line2.as_field_group }}</div>
+                <div class="col-md-5">{{ form.city.as_field_group }}</div>
+                <div class="col-md-4">{{ form.province.as_field_group }}</div>
+                <div class="col-md-3">{{ form.postal_code.as_field_group }}</div>
+              </div>
+            </div>
+            {{ form.notes.as_field_group }}
+          </div></div>
+
+          <div class="hc-card mb-4"><div class="hc-card-body">
+            <div class="checkout-step"><span class="step-num">3</span>Payment</div>
+            <div class="d-grid gap-2" role="radiogroup" aria-label="Payment method">
+              {% for choice in form.payment_method %}
+                <label class="option-card">
+                  <input class="form-check-input" type="radio" name="payment_method" value="{{ choice.data.value }}" {% if choice.data.selected %}checked{% endif %}>
+                  <span>
+                    <strong class="d-block">{{ choice.choice_label }}</strong>
+                    <span class="small text-muted">{% if choice.data.value == "cod" %}Pay in cash when your order arrives.{% else %}Transfer to our bank account; we'll ship once payment is received.{% endif %}</span>
+                  </span>
+                </label>
+              {% endfor %}
+              {% for error in form.payment_method.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            </div>
+            {% if site_settings.bank_transfer_instructions %}
+              <div class="alert bg-cream border mt-3 mb-0 small" data-bank-info hidden>{{ site_settings.bank_transfer_instructions|linebreaksbr }}</div>
+            {% endif %}
+          </div></div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="hc-card summary-card"><div class="hc-card-body">
+            <h2 class="h5 mb-3">Your order</h2>
+            <ul class="list-unstyled mb-3">
+              {% for line in cart %}
+                {% with image=line.product.primary_image %}
+                <li class="d-flex gap-3 align-items-center py-2">
+                  <div class="position-relative">
+                    <img class="cart-thumb sm" src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="">
+                    <span class="header-badge qty-badge">{{ line.quantity }}</span>
+                  </div>
+                  <span class="flex-grow-1 small fw-medium">{{ line.product.name }}</span>
+                  <span class="small fw-semibold text-nowrap">{{ line.line_total|money }}</span>
+                </li>
+                {% endwith %}
+              {% endfor %}
+            </ul>
+            <div class="summary-row"><span>Subtotal</span><span>{{ cart.subtotal|money }}</span></div>
+            <div class="summary-row"><span>Delivery</span><span data-shipping-amount>{% if shipping_cost %}{{ shipping_cost|money }}{% else %}Free{% endif %}</span></div>
+            <div class="summary-row summary-total"><span>Total</span><span data-total-amount>{{ total|money }}</span></div>
+            <button type="submit" class="btn btn-dark btn-lg w-100 mt-3">Place order</button>
+            <p class="small text-muted text-center mt-3 mb-0">By placing your order you agree to be contacted by phone or WhatsApp about delivery.</p>
+          </div></div>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

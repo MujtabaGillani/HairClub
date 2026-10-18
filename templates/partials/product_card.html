@@ -1,0 +1,31 @@
+{% load static core_tags %}
+<article class="product-card">
+  <div class="product-media">
+    <div class="product-badges">
+      {% if product.has_discount and product.show_price %}<span class="badge badge-sale">-{{ product.discount_percent }}%</span>{% endif %}
+      {% if not product.in_stock %}<span class="badge badge-soft">Sold out</span>{% elif product.is_low_stock %}<span class="badge badge-soft">Only {{ product.stock }} left</span>{% endif %}
+    </div>
+    <form method="post" action="{% url 'wishlist:toggle' product.pk %}" data-wishlist-form>
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="wishlist-btn{% if product.pk in wishlist_ids %} is-active{% endif %}" aria-pressed="{% if product.pk in wishlist_ids %}true{% else %}false{% endif %}" aria-label="Save {{ product.name }} to favourites"><i class="bi bi-heart"></i></button>
+    </form>
+    {% with image=product.primary_image %}
+      <img src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="{% if image %}{{ image.alt }}{% else %}{{ product.name }}{% endif %}" loading="lazy" width="600" height="600">
+    {% endwith %}
+    {% if product.is_purchasable %}
+      <form method="post" action="{% url 'cart:add' product.pk %}" class="product-quick" data-cart-form>
+        {% csrf_token %}<input type="hidden" name="quantity" value="1"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-dark w-100 btn-sm position-relative z-3"><i class="bi bi-bag-plus me-1"></i> Add to cart</button>
+      </form>
+    {% endif %}
+  </div>
+  <div class="product-info">
+    <div class="product-category">{{ product.category.name }}</div>
+    <h3 class="product-title"><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+    {% if product.show_price %}
+      <div><span class="price">{{ product.final_price|money }}</span>{% if product.has_discount %}<span class="price-old">{{ product.price|money }}</span>{% endif %}</div>
+    {% else %}
+      <div class="price-request"><i class="bi bi-chat-dots me-1"></i>Price on request</div>
+    {% endif %}
+  </div>
+</article>

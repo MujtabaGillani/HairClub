@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="page-hero py-4">
+  <div class="container">
+    <h1 class="mb-0">My account</h1>
+    <p class="text-muted mb-0">{{ user.get_full_name|default:user.email }}</p>
+  </div>
+</section>
+<section class="section-sm">
+  <div class="container">
+    <div class="row g-4">
+      <aside class="col-lg-3">
+        <nav class="list-group account-nav" aria-label="Account navigation">
+          <a href="{% url 'accounts:overview' %}" class="list-group-item list-group-item-action {% if active_tab == 'overview' %}active{% endif %}"><i class="bi bi-grid"></i>Overview</a>
+          <a href="{% url 'accounts:orders' %}" class="list-group-item list-group-item-action {% if active_tab == 'orders' %}active{% endif %}"><i class="bi bi-box-seam"></i>Orders</a>
+          <a href="{% url 'accounts:appointments' %}" class="list-group-item list-group-item-action {% if active_tab == 'appointments' %}active{% endif %}"><i class="bi bi-calendar-check"></i>Appointments</a>
+          <a href="{% url 'wishlist:list' %}" class="list-group-item list-group-item-action {% if active_tab == 'wishlist' %}active{% endif %}"><i class="bi bi-heart"></i>Favourites</a>
+          <a href="{% url 'accounts:profile' %}" class="list-group-item list-group-item-action {% if active_tab == 'profile' %}active{% endif %}"><i class="bi bi-person"></i>Profile</a>
+          <a href="{% url 'account_change_password' %}" class="list-group-item list-group-item-action"><i class="bi bi-key"></i>Password</a>
+          {% if user.is_vendor %}<a href="{% url 'dashboard:overview' %}" class="list-group-item list-group-item-action"><i class="bi bi-speedometer2"></i>Vendor dashboard</a>{% endif %}
+          <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
+            <button type="submit" class="list-group-item list-group-item-action text-danger"><i class="bi bi-box-arrow-right"></i>Sign out</button>
+          </form>
+        </nav>
+      </aside>
+      <div class="col-lg-9">{% block account_content %}{% endblock %}</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

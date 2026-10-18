@@ -1,0 +1,20 @@
+{% extends "accounts/base.html" %}
+{% block title %}Profile | {{ site_settings.business_name }}{% endblock %}
+
+{% block account_content %}
+<div class="hc-card"><div class="hc-card-body">
+  <h2 class="h5 mb-4">Profile details</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-md-6">{{ form.first_name.as_field_group }}</div>
+      <div class="col-md-6">{{ form.last_name.as_field_group }}</div>
+      <div class="col-md-6">
+        <div class="mb-3"><label class="form-label" for="email">Email</label><input id="email" class="form-control" value="{{ user.email }}" disabled><div class="form-text"><a href="{% url 'account_email' %}">Manage email addresses</a></div></div>
+      </div>
+      <div class="col-md-6">{{ form.phone.as_field_group }}</div>
+    </div>
+    <button type="submit" class="btn btn-dark">Save changes</button>
+  </form>
+</div></div>
+{% endblock %}

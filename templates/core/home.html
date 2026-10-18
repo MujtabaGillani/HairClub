@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load core_tags %}
+
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center g-4 g-lg-5">
+      <div class="col-lg-6">
+        <span class="eyebrow">Non-surgical hair replacement</span>
+        <h1 class="mb-4">Your hair, <em>restored</em>.<br>No surgery. No waiting.</h1>
+        <p class="lead mb-4">Custom hair systems, undetectable hair patches and expert aftercare, fitted in a private studio by specialists who understand hair loss.</p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="{% url 'appointments:book' %}" class="btn btn-gold btn-lg"><i class="bi bi-calendar-check me-2"></i>Book a consultation</a>
+          <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-light-gold btn-lg">Shop hair patches</a>
+        </div>
+        <div class="row hero-stats g-3">
+          <div class="col-4"><strong>100%</strong><span>Non-surgical</span></div>
+          <div class="col-4"><strong>1 day</strong><span>Same-day results</span></div>
+          <div class="col-4"><strong>1:1</strong><span>Private studio</span></div>
+        </div>
+      </div>
+      <div class="col-lg-5 offset-lg-1 d-none d-md-block">
+        <div class="position-relative">
+          <div class="hero-visual" aria-hidden="true">
+            <svg viewBox="0 0 200 240" fill="none" stroke="#c4a27a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M62 198c-6-20-4-38 2-52 4-10 3-18-2-28-8-16-6-40 8-58 15-19 40-28 64-22 26 6 44 28 44 56 0 12-3 22-9 32"/>
+              <path d="M169 128c4 6 8 12 6 16-2 3-7 4-10 4"/>
+              <path d="M165 148c0 10-4 20-14 22-6 1-12 0-16-2"/>
+              <path d="M135 168c0 10 2 20 8 30"/>
+              <path d="M70 62c10-12 26-20 44-20 22 0 40 12 48 30" opacity=".6"/>
+              <path d="M66 74c14-14 32-20 52-18 18 2 32 12 40 26" opacity=".45"/>
+              <path d="M64 88c16-12 34-16 52-12 14 3 26 11 34 22" opacity=".3"/>
+              <circle cx="146" cy="112" r="2.5" fill="#c4a27a"/>
+            </svg>
+          </div>
+          <div class="hero-card one"><i class="bi bi-shield-check"></i><div><strong>Undetectable hairline</strong><br><span class="text-muted">Lace &amp; skin bases</span></div></div>
+          <div class="hero-card two"><i class="bi bi-stars"></i><div><strong>Custom-fitted</strong><br><span class="text-muted">Colour &amp; density matched</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-sm bg-cream border-bottom">
+  <div class="container">
+    <div class="row g-4 text-center text-md-start">
+      <div class="col-6 col-md-3 d-flex flex-column flex-md-row align-items-center gap-3"><div class="feature-icon m-0"><i class="bi bi-heart-pulse"></i></div><div><strong>No surgery</strong><div class="small text-muted">Zero downtime or scarring</div></div></div>
+      <div class="col-6 col-md-3 d-flex flex-column flex-md-row align-items-center gap-3"><div class="feature-icon m-0"><i class="bi bi-lightning-charge"></i></div><div><strong>Instant results</strong><div class="small text-muted">Walk out with a full head of hair</div></div></div>
+      <div class="col-6 col-md-3 d-flex flex-column flex-md-row align-items-center gap-3"><div class="feature-icon m-0"><i class="bi bi-lock"></i></div><div><strong>Total privacy</strong><div class="small text-muted">Discreet one-to-one studio</div></div></div>
+      <div class="col-6 col-md-3 d-flex flex-column flex-md-row align-items-center gap-3"><div class="feature-icon m-0"><i class="bi bi-arrow-repeat"></i></div><div><strong>Lifetime care</strong><div class="small text-muted">Maintenance &amp; re-bonding</div></div></div>
+    </div>
+  </div>
+</section>
+
+{% if services %}
+<section class="section">
+  <div class="container">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-5">
+      <div>
+        <span class="eyebrow">Treatments</span>
+        <h2 class="section-title">Hair solutions tailored to you</h2>
+        <p class="lead-muted mb-0">Every treatment starts with a private consultation so we can match your hair colour, texture, density and lifestyle.</p>
+      </div>
+      <a href="{% url 'appointments:services' %}" class="btn btn-outline-dark">All treatments <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+    <div class="row g-4">
+      {% for service in services %}
+        <div class="col-md-6 col-lg-4">{% include "appointments/partials/service_card.html" %}</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section bg-cream">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="eyebrow">How it works</span>
+      <h2 class="section-title">From consultation to confidence</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-6 col-lg-3 process-step"><div class="num">1</div><h5>Book</h5><p class="text-muted small mb-0">Choose a time online. Your request goes straight to our team on WhatsApp.</p></div>
+      <div class="col-6 col-lg-3 process-step"><div class="num">2</div><h5>Consult</h5><p class="text-muted small mb-0">We assess your hair loss and recommend the right system and base.</p></div>
+      <div class="col-6 col-lg-3 process-step"><div class="num">3</div><h5>Fit &amp; style</h5><p class="text-muted small mb-0">Your system is bonded, cut and styled to blend seamlessly.</p></div>
+      <div class="col-6 col-lg-3 process-step"><div class="num">4</div><h5>Maintain</h5><p class="text-muted small mb-0">Regular maintenance visits and pro products keep it flawless.</p></div>
+    </div>
+  </div>
+</section>
+
+{% if featured_products %}
+<section class="section">
+  <div class="container">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-5">
+      <div>
+        <span class="eyebrow">The shop</span>
+        <h2 class="section-title">Hair patches &amp; professional care</h2>
+        <p class="lead-muted mb-0">Salon-grade systems, adhesives and aftercare, delivered nationwide.</p>
+      </div>
+      <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-dark">Shop all <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+    <div class="row g-4">
+      {% for product in featured_products %}
+        <div class="col-6 col-md-4 col-lg-3">{% include "partials/product_card.html" %}</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if categories %}
+<section class="section-sm pb-5">
+  <div class="container">
+    <div class="row g-3">
+      {% for category in categories %}
+        <div class="col-sm-6 col-lg-4">
+          <a href="{{ category.get_absolute_url }}" class="category-tile">
+            <div class="feature-icon"><i class="bi bi-{{ category.icon|default:'bag' }}"></i></div>
+            <div><strong>{{ category.name }}</strong>{% if category.description %}<div class="small text-muted">{{ category.description|truncatechars:70 }}</div>{% endif %}</div>
+            <i class="bi bi-arrow-right ms-auto text-muted"></i>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section pt-4">
+  <div class="container">
+    <div class="cta-band">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+          <span class="eyebrow">Free consultation</span>
+          <h2 class="mb-2">Ready to see the difference?</h2>
+          <p class="mb-0 text-white-50">Book a private, no-obligation consultation. We'll confirm your slot on WhatsApp within working hours.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end d-flex flex-wrap gap-2 justify-content-lg-end">
+          <a href="{% url 'appointments:book' %}" class="btn btn-gold btn-lg">Book now</a>
+          <a href="{{ whatsapp_chat_url }}" target="_blank" rel="noopener" class="btn btn-outline-light-gold btn-lg"><i class="bi bi-whatsapp me-1"></i> Chat</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

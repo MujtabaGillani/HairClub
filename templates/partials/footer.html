@@ -1,0 +1,47 @@
+<footer class="site-footer">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <a class="navbar-brand mb-3" href="{% url 'core:home' %}"><span class="brand-mark">H</span><span class="brand-name">Hair<span>Club</span></span></a>
+        <p class="mt-3 pe-lg-4">{{ site_settings.tagline }}. Natural-looking, confidence-restoring results without surgery.</p>
+        <div class="mt-3">
+          {% if site_settings.instagram_url %}<a class="social-link" href="{{ site_settings.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi bi-instagram"></i></a>{% endif %}
+          {% if site_settings.facebook_url %}<a class="social-link" href="{{ site_settings.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="bi bi-facebook"></i></a>{% endif %}
+          {% if site_settings.tiktok_url %}<a class="social-link" href="{{ site_settings.tiktok_url }}" target="_blank" rel="noopener" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>{% endif %}
+          <a class="social-link" href="{{ whatsapp_chat_url }}" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Explore</h6>
+        <ul class="list-unstyled footer-links">
+          <li><a href="{% url 'appointments:services' %}">Treatments</a></li>
+          <li><a href="{% url 'catalog:product_list' %}">Shop</a></li>
+          <li><a href="{% url 'core:about' %}">About us</a></li>
+          <li><a href="{% url 'core:contact' %}">Contact</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6>Help</h6>
+        <ul class="list-unstyled footer-links">
+          <li><a href="{% url 'appointments:book' %}">Book appointment</a></li>
+          <li><a href="{% url 'orders:lookup' %}">Track order</a></li>
+          <li><a href="{% url 'accounts:overview' %}">My account</a></li>
+          <li><a href="{% url 'wishlist:list' %}">Favourites</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-4">
+        <h6>Visit the salon</h6>
+        <ul class="list-unstyled footer-links">
+          <li><i class="bi bi-geo-alt me-2 text-gold"></i>{{ site_settings.address }}</li>
+          <li><i class="bi bi-telephone me-2 text-gold"></i><a href="tel:{{ site_settings.phone|cut:' ' }}">{{ site_settings.phone }}</a></li>
+          <li><i class="bi bi-envelope me-2 text-gold"></i><a href="mailto:{{ site_settings.email }}">{{ site_settings.email }}</a></li>
+          <li><i class="bi bi-clock me-2 text-gold"></i>{{ site_settings.opening_time|time:"g:i A" }} – {{ site_settings.closing_time|time:"g:i A" }}{% if site_settings.closed_weekday_names %} &middot; Closed {{ site_settings.closed_weekday_names|join:", " }}{% endif %}</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between gap-2">
+      <span>&copy; {% now "Y" %} {{ site_settings.business_name }}. All rights reserved.</span>
+      <span>Cash on delivery &middot; Bank transfer &middot; Nationwide shipping</span>
+    </div>
+  </div>
+</footer>

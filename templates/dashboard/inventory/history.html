@@ -1,0 +1,42 @@
+{% extends "dashboard/base.html" %}
+{% block page_title %}Stock history{% endblock %}
+{% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:inventory' %}">Inventory</a></li><li class="breadcrumb-item active" aria-current="page">History</li></ol></nav>{% endblock %}
+{% block heading %}{% if product %}Stock history · {{ product.name }}{% else %}Stock history{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="panel">
+  <div class="panel-header">
+    <form method="get" class="filter-bar">
+      <select name="reason" class="form-select w-auto" aria-label="Reason" data-autosubmit>
+        <option value="">All movements</option>
+        {% for value, label in reasons %}<option value="{{ value }}" {% if request.GET.reason == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <noscript><button class="btn btn-sm btn-outline-dark" type="submit">Filter</button></noscript>
+    </form>
+    {% if product %}<span class="small">Current stock: <strong>{{ product.stock }}</strong></span>{% endif %}
+  </div>
+  {% if movements %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Date</th>{% if not product %}<th>Product</th>{% endif %}<th>Change</th><th>Balance</th><th>Reason</th><th>Reference / note</th><th>By</th></tr></thead>
+      <tbody>
+        {% for m in movements %}
+          <tr>
+            <td class="text-nowrap small">{{ m.created_at|date:"j M Y, g:i A" }}</td>
+            {% if not product %}<td><a href="{% url 'dashboard:product_stock_history' m.product_id %}" class="text-reset">{{ m.product.name }}</a></td>{% endif %}
+            <td class="fw-bold {% if m.quantity_change > 0 %}text-success{% else %}text-danger{% endif %}">{% if m.quantity_change > 0 %}+{% endif %}{{ m.quantity_change }}</td>
+            <td>{{ m.stock_after }}</td>
+            <td><span class="badge text-bg-light border">{{ m.get_reason_display }}</span></td>
+            <td class="small">{% if m.reference %}<a href="{% url 'dashboard:order_detail' m.reference %}">{{ m.reference }}</a>{% endif %}{% if m.note %}<div class="text-muted">{{ m.note }}</div>{% endif %}</td>
+            <td class="small text-muted">{% if m.created_by %}{{ m.created_by.get_full_name|default:m.created_by.email }}{% elif m.reason == "sale" %}Customer order{% else %}System{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-clock-history"></i></div><h2 class="h5">No stock movements yet</h2></div>
+  {% endif %}
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}

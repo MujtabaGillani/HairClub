@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static core_tags %}
+{% block title %}{{ product.name }} | {{ site_settings.business_name }}{% endblock %}
+{% block meta_description %}{{ product.short_description|default:product.description|truncatechars:155 }}{% endblock %}
+
+{% block content %}
+<section class="section-sm">
+  <div class="container">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'catalog:product_list' %}">Shop</a></li>
+      <li class="breadcrumb-item"><a href="{{ product.category.get_absolute_url }}">{{ product.category.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+    </ol></nav>
+
+    <div class="row g-4 g-lg-5 mt-1">
+      <div class="col-lg-6">
+        {% with images=product.images.all primary=product.primary_image %}
+          <div class="gallery-main">
+            <img data-gallery-main src="{% if primary %}{{ primary.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="{% if primary %}{{ primary.alt }}{% else %}{{ product.name }}{% endif %}" width="800" height="800">
+          </div>
+          {% if images|length > 1 %}
+            <div class="gallery-thumbs" role="list" aria-label="Product images">
+              {% for image in images %}
+                <button type="button" role="listitem" class="gallery-thumb{% if image == primary %} active{% endif %}" data-gallery-thumb data-full="{{ image.image.url }}" data-alt="{{ image.alt }}" aria-label="Show image {{ forloop.counter }}">
+                  <img src="{{ image.image.url }}" alt="" loading="lazy">
+                </button>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <div class="col-lg-6">
+        <div class="product-category mb-2">{{ product.category.name }}{% if product.brand %} · {{ product.brand }}{% endif %}</div>
+        <h1 class="h2 mb-3">{{ product.name }}</h1>
+
+        {% if product.show_price %}
+          <div class="d-flex flex-wrap align-items-baseline gap-2 mb-2">
+            <span class="detail-price">{{ product.final_price|money }}</span>
+            {% if product.has_discount %}
+              <span class="price-old fs-5">{{ product.price|money }}</span>
+              <span class="badge badge-sale">Save {{ product.discount_percent }}%</span>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="price-request fs-5 mb-2"><i class="bi bi-chat-dots me-1"></i>Price on request</div>
+        {% endif %}
+
+        <p class="stock-pill {{ product.stock_status }} mb-4">
+          {% if product.stock_status == "out" %}<i class="bi bi-x-circle me-1"></i>Out of stock
+          {% elif product.stock_status == "low" %}<i class="bi bi-exclamation-circle me-1"></i>Only {{ product.stock }} left, order soon
+          {% else %}<i class="bi bi-check-circle me-1"></i>In stock{% endif %}
+        </p>
+
+        {% if product.short_description %}<p class="lead fs-6 text-muted">{{ product.short_description }}</p>{% endif %}
+
+        {% if product.is_purchasable %}
+          <form method="post" action="{% url 'cart:add' product.pk %}" class="d-flex flex-wrap gap-3 align-items-center my-4" data-cart-form>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="qty-stepper">
+              <button type="button" data-qty-step="-1" aria-label="Decrease quantity"><i class="bi bi-dash"></i></button>
+              <input type="number" name="quantity" value="1" min="1" max="{{ max_quantity }}" aria-label="Quantity">
+              <button type="button" data-qty-step="1" aria-label="Increase quantity"><i class="bi bi-plus"></i></button>
+            </div>
+            <button type="submit" class="btn btn-dark btn-lg flex-grow-1"><i class="bi bi-bag-plus me-2"></i>Add to cart</button>
+          </form>
+        {% elif not product.show_price %}
+          <a href="{{ enquiry_url }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-lg w-100 my-4"><i class="bi bi-whatsapp me-2"></i>Ask for price on WhatsApp</a>
+        {% else %}
+          <a href="{{ enquiry_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-lg w-100 my-4"><i class="bi bi-bell me-2"></i>Ask about restock</a>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <form method="post" action="{% url 'wishlist:toggle' product.pk %}" data-wishlist-form>
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn btn-outline-dark wishlist-btn position-static w-auto h-auto px-3 rounded-pill shadow-none{% if product.pk in wishlist_ids %} is-active{% endif %}" aria-pressed="{% if product.pk in wishlist_ids %}true{% else %}false{% endif %}">
+              <i class="bi bi-heart me-1"></i> Favourite
+            </button>
+          </form>
+          {% if product.show_price %}<a href="{{ enquiry_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark"><i class="bi bi-whatsapp me-1"></i> Ask a question</a>{% endif %}
+        </div>
+
+        <ul class="assurance-list hc-card hc-card-body mb-4">
+          <li><i class="bi bi-truck"></i><div><strong>Nationwide delivery</strong><div class="small text-muted">{% if site_settings.free_shipping_threshold %}Free standard delivery on orders over {{ site_settings.free_shipping_threshold|money }}{% else %}Fast, tracked delivery{% endif %}</div></div></li>
+          <li><i class="bi bi-cash-coin"></i><div><strong>Cash on delivery</strong><div class="small text-muted">Or pay by bank transfer</div></div></li>
+          <li><i class="bi bi-scissors"></i><div><strong>Professional fitting available</strong><div class="small text-muted"><a href="{% url 'appointments:book' %}">Book a fitting appointment</a> at our studio</div></div></li>
+        </ul>
+
+        <div class="accordion" id="productInfo">
+          <div class="accordion-item">
+            <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#desc" aria-expanded="true" aria-controls="desc">Description</button></h2>
+            <div id="desc" class="accordion-collapse collapse show" data-bs-parent="#productInfo"><div class="accordion-body">{{ product.description|linebreaks }}</div></div>
+          </div>
+          {% if product.spec_rows %}
+          <div class="accordion-item">
+            <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#specs" aria-expanded="false" aria-controls="specs">Specifications</button></h2>
+            <div id="specs" class="accordion-collapse collapse" data-bs-parent="#productInfo"><div class="accordion-body p-0">
+              <table class="table spec-table mb-0"><tbody>
+                {% for label, value in product.spec_rows %}<tr><th scope="row" class="ps-3">{{ label }}</th><td>{{ value }}</td></tr>{% endfor %}
+                <tr><th scope="row" class="ps-3">SKU</th><td>{{ product.sku }}</td></tr>
+              </tbody></table>
+            </div></div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if related_products %}
+<section class="section bg-cream">
+  <div class="container">
+    <h2 class="section-title mb-4">You may also like</h2>
+    <div class="row g-4">
+      {% for product in related_products %}<div class="col-6 col-lg-3">{% include "partials/product_card.html" %}</div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

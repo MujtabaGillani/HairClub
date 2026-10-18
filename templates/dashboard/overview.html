@@ -1,0 +1,107 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}Overview{% endblock %}
+{% block heading %}Good {% now "A" as ampm %}{% if ampm == "AM" %}morning{% else %}day{% endif %}, {{ user.display_name }}{% endblock %}
+{% block actions %}
+  <a href="{% url 'dashboard:product_create' %}" class="btn btn-dark btn-sm"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline">Add product</span></a>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'dashboard:appointment_list' %}?view=pending" class="text-reset text-decoration-none">
+      <div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-calendar-event"></i></div><div><div class="kpi-label">Appointments to confirm</div><div class="kpi-value">{{ pending_appointments }}</div><div class="kpi-sub">{{ todays_appointments|length }} booked today</div></div></div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'dashboard:order_list' %}?status=pending" class="text-reset text-decoration-none">
+      <div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-receipt"></i></div><div><div class="kpi-label">New orders</div><div class="kpi-value">{{ pending_orders }}</div><div class="kpi-sub">Awaiting confirmation</div></div></div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-graph-up-arrow"></i></div><div><div class="kpi-label">Sales · last 30 days</div><div class="kpi-value">{{ revenue_30d|money }}</div><div class="kpi-sub">{{ orders_30d }} order{{ orders_30d|pluralize }}</div></div></div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'dashboard:inventory' %}?stock=low" class="text-reset text-decoration-none">
+      <div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-exclamation-triangle"></i></div><div><div class="kpi-label">Stock alerts</div><div class="kpi-value">{{ low_stock_count|add:out_of_stock_count }}</div><div class="kpi-sub">{{ low_stock_count }} low · {{ out_of_stock_count }} out of stock</div></div></div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Today's appointments</h2><a href="{% url 'dashboard:appointment_list' %}?view=today" class="small">View all</a></div>
+      {% if todays_appointments %}
+        <div class="table-responsive"><table class="table align-middle">
+          <thead><tr><th>Time</th><th>Client</th><th>Service</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for appt in todays_appointments %}
+              <tr>
+                <td class="fw-semibold text-nowrap">{{ appt.time|time:"g:i A" }}</td>
+                <td><a href="{% url 'dashboard:appointment_detail' appt.reference %}" class="text-reset fw-medium">{{ appt.full_name }}</a><div class="small text-muted">{{ appt.phone }}</div></td>
+                <td>{{ appt.service.name }}</td>
+                <td><span class="badge text-bg-{{ appt.status|status_badge }}">{{ appt.get_status_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <div class="panel-body text-muted small">No appointments booked for today.</div>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h2>Recent orders</h2><a href="{% url 'dashboard:order_list' %}" class="small">View all</a></div>
+      {% if recent_orders %}
+        <div class="table-responsive"><table class="table align-middle">
+          <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for order in recent_orders %}
+              <tr>
+                <td><a href="{% url 'dashboard:order_detail' order.number %}" class="fw-semibold">{{ order.number }}</a><div class="small text-muted">{{ order.created_at|timesince }} ago</div></td>
+                <td>{{ order.full_name }}</td>
+                <td class="fw-semibold">{{ order.total|money }}</td>
+                <td><span class="badge text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table></div>
+      {% else %}
+        <div class="panel-body text-muted small">No orders yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Upcoming appointments</h2><a href="{% url 'dashboard:appointment_list' %}" class="small">Manage</a></div>
+      <ul class="list-unstyled mb-0">
+        {% for appt in upcoming_appointments %}
+          <li class="d-flex align-items-center gap-3 px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+            <div class="date-badge"><div class="small text-muted text-uppercase">{{ appt.date|date:"M" }}</div><div class="fs-5 fw-bold lh-1">{{ appt.date|date:"j" }}</div></div>
+            <div class="flex-grow-1 min-w-0"><a href="{% url 'dashboard:appointment_detail' appt.reference %}" class="text-reset fw-medium">{{ appt.full_name }}</a><div class="small text-muted text-truncate">{{ appt.time|time:"g:i A" }} · {{ appt.service.name }}</div></div>
+            <span class="badge text-bg-{{ appt.status|status_badge }}">{{ appt.get_status_display }}</span>
+          </li>
+        {% empty %}
+          <li class="panel-body text-muted small">Nothing scheduled.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h2>Low stock</h2><a href="{% url 'dashboard:inventory' %}?stock=low" class="small">Inventory</a></div>
+      <ul class="list-unstyled mb-0">
+        {% for product in low_stock_products %}
+          <li class="d-flex justify-content-between align-items-center px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+            <a href="{% url 'dashboard:product_update' product.pk %}" class="text-reset text-truncate me-2">{{ product.name }}</a>
+            <span class="badge text-bg-warning">{{ product.stock }} left</span>
+          </li>
+        {% empty %}
+          <li class="panel-body text-muted small"><i class="bi bi-check-circle text-success me-1"></i>All products are well stocked.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

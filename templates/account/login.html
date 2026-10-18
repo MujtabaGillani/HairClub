@@ -1,0 +1,38 @@
+{% extends "account/base_entrance.html" %}
+{% load allauth account socialaccount %}
+{% block head_title %}Sign in{% endblock head_title %}
+
+{% block content %}
+<div class="text-center mb-4">
+  <span class="brand-mark mx-auto mb-3">H</span>
+  <h1 class="h3 mb-1">Welcome back</h1>
+  <p class="text-muted small mb-0">Sign in to track orders, appointments and favourites.</p>
+</div>
+
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+  <div class="divider-text">or sign in with email</div>
+{% endif %}
+
+<form method="post" action="{% url 'account_login' %}" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger small">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {{ form.login.as_field_group }}
+  {{ form.password.as_field_group }}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    {% if form.remember %}
+      <div class="form-check mb-0">
+        <input class="form-check-input" type="checkbox" name="remember" id="id_remember" {% if form.remember.value %}checked{% endif %}>
+        <label class="form-check-label small" for="id_remember">Remember me</label>
+      </div>
+    {% endif %}
+    <a class="small" href="{% url 'account_reset_password' %}">Forgot password?</a>
+  </div>
+  {{ redirect_field }}
+  <button type="submit" class="btn btn-dark btn-lg w-100">Sign in</button>
+</form>
+
+<p class="text-center small text-muted mt-4 mb-1">New to {{ site_settings.business_name }}? <a href="{{ signup_url }}">Create an account</a></p>
+<p class="text-center small text-muted mb-0">Just shopping? <a href="{% url 'cart:detail' %}">Check out as a guest</a></p>
+{% endblock content %}

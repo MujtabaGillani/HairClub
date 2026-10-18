@@ -1,0 +1,76 @@
+{% load core_tags %}
+<div class="topbar d-none d-md-block">
+  <div class="container d-flex justify-content-between align-items-center py-2">
+    <div class="d-flex gap-4">
+      <span><i class="bi bi-geo-alt me-1"></i>{{ site_settings.address }}</span>
+      <span><i class="bi bi-clock me-1"></i>{{ site_settings.opening_time|time:"g:i A" }} – {{ site_settings.closing_time|time:"g:i A" }}</span>
+    </div>
+    <div class="d-flex gap-4">
+      <a href="tel:{{ site_settings.phone|cut:' ' }}"><i class="bi bi-telephone me-1"></i>{{ site_settings.phone }}</a>
+      <a href="{% url 'orders:lookup' %}"><i class="bi bi-truck me-1"></i>Track order</a>
+    </div>
+  </div>
+</div>
+<header class="site-header">
+  <nav class="navbar navbar-expand-lg py-2" aria-label="Main navigation">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'core:home' %}" aria-label="{{ site_settings.business_name }} home">
+        <span class="brand-mark">H</span>
+        <span class="brand-name">Hair<span>Club</span></span>
+      </a>
+
+      <div class="d-flex align-items-center gap-2 order-lg-3">
+        <a class="header-icon" href="{% url 'wishlist:list' %}" aria-label="Favourites">
+          <i class="bi bi-heart"></i>
+          <span class="header-badge" data-wishlist-count data-count="{{ wishlist_count }}">{% if wishlist_count %}{{ wishlist_count }}{% endif %}</span>
+        </a>
+        <a class="header-icon" href="{% url 'cart:detail' %}" aria-label="Cart">
+          <i class="bi bi-bag"></i>
+          <span class="header-badge" data-cart-count data-count="{{ cart_count }}">{% if cart_count %}{{ cart_count }}{% endif %}</span>
+        </a>
+        <div class="dropdown">
+          <button class="header-icon btn btn-link border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+            <i class="bi bi-person-circle"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+            {% if user.is_authenticated %}
+              <li><h6 class="dropdown-header">Hi, {{ user.display_name }}</h6></li>
+              {% if user.is_vendor %}
+                <li><a class="dropdown-item" href="{% url 'dashboard:overview' %}"><i class="bi bi-speedometer2 me-2"></i>Vendor dashboard</a></li>
+                <li><hr class="dropdown-divider"></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="{% url 'accounts:overview' %}"><i class="bi bi-person me-2"></i>My account</a></li>
+              <li><a class="dropdown-item" href="{% url 'accounts:orders' %}"><i class="bi bi-box-seam me-2"></i>My orders</a></li>
+              <li><a class="dropdown-item" href="{% url 'accounts:appointments' %}"><i class="bi bi-calendar-check me-2"></i>My appointments</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
+                  <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button>
+                </form>
+              </li>
+            {% else %}
+              <li><a class="dropdown-item" href="{% url 'account_login' %}"><i class="bi bi-box-arrow-in-right me-2"></i>Sign in</a></li>
+              <li><a class="dropdown-item" href="{% url 'account_signup' %}"><i class="bi bi-person-plus me-2"></i>Create account</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{% url 'orders:lookup' %}"><i class="bi bi-truck me-2"></i>Track an order</a></li>
+            {% endif %}
+          </ul>
+        </div>
+        <button class="navbar-toggler border-0 ms-1" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
+
+      <div class="collapse navbar-collapse order-lg-2" id="mainNav">
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item"><a class="nav-link {% active_nav '/' %}" href="{% url 'core:home' %}">Home</a></li>
+          <li class="nav-item"><a class="nav-link {% active_nav '/appointments/services/' %}" href="{% url 'appointments:services' %}">Treatments</a></li>
+          <li class="nav-item"><a class="nav-link {% active_nav '/shop/' %}" href="{% url 'catalog:product_list' %}">Shop</a></li>
+          <li class="nav-item"><a class="nav-link {% active_nav '/about/' %}" href="{% url 'core:about' %}">About</a></li>
+          <li class="nav-item"><a class="nav-link {% active_nav '/contact/' %}" href="{% url 'core:contact' %}">Contact</a></li>
+        </ul>
+        <a href="{% url 'appointments:book' %}" class="btn btn-dark btn-sm ms-lg-3 my-2 my-lg-0 me-lg-3"><i class="bi bi-calendar-plus me-1"></i> Book appointment</a>
+      </div>
+    </div>
+  </nav>
+</header>

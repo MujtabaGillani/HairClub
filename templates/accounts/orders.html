@@ -1,0 +1,31 @@
+{% extends "accounts/base.html" %}
+{% load core_tags %}
+{% block title %}My orders | {{ site_settings.business_name }}{% endblock %}
+
+{% block account_content %}
+<h2 class="h4 mb-4">Orders</h2>
+{% if orders %}
+  <div class="hc-card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th scope="col" class="ps-4">Order</th><th scope="col">Date</th><th scope="col">Items</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col" class="pe-4"></th></tr></thead>
+        <tbody>
+          {% for order in orders %}
+            <tr>
+              <td class="ps-4 fw-semibold">{{ order.number }}</td>
+              <td>{{ order.created_at|date:"j M Y" }}</td>
+              <td>{{ order.item_count }}</td>
+              <td>{{ order.total|money }}</td>
+              <td><span class="badge text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span></td>
+              <td class="pe-4 text-end"><a href="{{ order.get_absolute_url }}" class="btn btn-sm btn-outline-dark">View</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% include "partials/pagination.html" %}
+{% else %}
+  <div class="empty-state hc-card"><div class="empty-icon"><i class="bi bi-box-seam"></i></div><h3 class="h5">No orders yet</h3><p class="text-muted">When you place an order it will appear here.</p><a href="{% url 'catalog:product_list' %}" class="btn btn-dark">Start shopping</a></div>
+{% endif %}
+{% endblock %}

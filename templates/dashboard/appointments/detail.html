@@ -1,0 +1,92 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}Appointment {{ appointment.reference }}{% endblock %}
+{% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:appointment_list' %}">Appointments</a></li><li class="breadcrumb-item active" aria-current="page">{{ appointment.reference }}</li></ol></nav>{% endblock %}
+{% block heading %}{{ appointment.full_name }}{% endblock %}
+{% block actions %}<span class="badge fs-6 text-bg-{{ appointment.status|status_badge }}">{{ appointment.get_status_display }}</span>{% endblock %}
+
+{% block dashboard_content %}
+{% if notify_whatsapp_url %}
+  <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span><i class="bi bi-check-circle me-1"></i>Status updated. Let the client know on WhatsApp.</span>
+    <a href="{{ notify_whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm"><i class="bi bi-whatsapp me-1"></i>Send message</a>
+  </div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Booking details</h2><span class="small text-muted">Requested {{ appointment.created_at|date:"j M Y, g:i A" }}</span></div>
+      <div class="panel-body">
+        <dl class="dl-grid">
+          <dt>Reference</dt><dd class="fw-semibold">{{ appointment.reference }}</dd>
+          <dt>Service</dt><dd>{{ appointment.service.name }} <span class="text-muted">({{ appointment.service.duration_minutes }} min)</span></dd>
+          <dt>Date</dt><dd class="fw-semibold">{{ appointment.date|date:"l, j F Y" }}</dd>
+          <dt>Time</dt><dd class="fw-semibold">{{ appointment.time|time:"g:i A" }}{% if appointment.is_past %} <span class="badge text-bg-light border ms-1">Past</span>{% endif %}</dd>
+          <dt>Client notes</dt><dd>{{ appointment.notes|default:"—"|linebreaksbr }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Client</h2>{% if appointment.user %}<span class="badge text-bg-light border">Registered customer</span>{% endif %}</div>
+      <div class="panel-body">
+        <dl class="dl-grid mb-3">
+          <dt>Name</dt><dd>{{ appointment.full_name }}</dd>
+          <dt>Phone</dt><dd><a href="tel:{{ appointment.phone|cut:' ' }}">{{ appointment.phone }}</a></dd>
+          <dt>Email</dt><dd>{% if appointment.email %}<a href="mailto:{{ appointment.email }}">{{ appointment.email }}</a>{% else %}—{% endif %}</dd>
+        </dl>
+        <a href="{{ customer_whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm"><i class="bi bi-whatsapp me-1"></i>Message on WhatsApp</a>
+      </div>
+    </div>
+
+    {% if history %}
+    <div class="panel">
+      <div class="panel-header"><h2>Previous visits from this number</h2></div>
+      <ul class="list-unstyled mb-0">
+        {% for past in history %}
+          <li class="d-flex justify-content-between align-items-center px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+            <a href="{% url 'dashboard:appointment_detail' past.reference %}" class="text-reset">{{ past.date|date:"j M Y" }} · {{ past.service.name }}</a>
+            <span class="badge text-bg-{{ past.status|status_badge }}">{{ past.get_status_display }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-xl-4">
+    <div class="panel mb-4">
+      <div class="panel-header"><h2>Update status</h2></div>
+      <div class="panel-body">
+        {% if appointment.allowed_transitions %}
+          <form method="post" action="{% url 'dashboard:appointment_status' appointment.reference %}">
+            {% csrf_token %}
+            <div class="d-grid gap-2 mb-3">
+              {% for value, label in appointment.allowed_transitions %}
+                <input type="radio" class="btn-check" name="status" id="st-{{ value }}" value="{{ value }}" {% if forloop.first %}checked{% endif %}>
+                <label class="btn btn-outline-{% if value == 'cancelled' or value == 'no_show' %}danger{% elif value == 'confirmed' or value == 'completed' %}success{% else %}dark{% endif %} text-start" for="st-{{ value }}">
+                  <i class="bi {% if value == 'confirmed' %}bi-check2-circle{% elif value == 'completed' %}bi-patch-check{% elif value == 'cancelled' %}bi-x-circle{% else %}bi-person-x{% endif %} me-2"></i>{{ label }}
+                </label>
+              {% endfor %}
+            </div>
+            <label class="form-label" for="st-note">Internal note (optional)</label>
+            <input type="text" class="form-control mb-3" id="st-note" name="note" maxlength="255" placeholder="Visible to staff only">
+            <button type="submit" class="btn btn-dark w-100">Update appointment</button>
+          </form>
+        {% else %}
+          <p class="text-muted small mb-0">This appointment is {{ appointment.get_status_display|lower }} and can no longer be changed.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><h2>Internal notes</h2></div>
+      <div class="panel-body small">
+        {% if appointment.vendor_note %}{{ appointment.vendor_note|linebreaksbr }}{% else %}<span class="text-muted">No notes yet.</span>{% endif %}
+        {% if appointment.handled_by %}<div class="text-muted mt-3">Last updated by {{ appointment.handled_by.get_full_name|default:appointment.handled_by.email }}{% if appointment.status_changed_at %}, {{ appointment.status_changed_at|date:"j M, g:i A" }}{% endif %}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

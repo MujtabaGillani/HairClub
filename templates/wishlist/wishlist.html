@@ -1,0 +1,22 @@
+{% extends "accounts/base.html" %}
+{% block title %}Favourites | {{ site_settings.business_name }}{% endblock %}
+
+{% block account_content %}
+<h2 class="h4 mb-4">Favourites</h2>
+{% if items %}
+  <div class="row g-4">
+    {% for item in items %}
+      {% with product=item.product %}
+        <div class="col-6 col-md-4" data-card>{% include "partials/product_card.html" %}</div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state hc-card">
+    <div class="empty-icon"><i class="bi bi-heart"></i></div>
+    <h3 class="h5">No favourites yet</h3>
+    <p class="text-muted">Tap the heart on any product to save it here.</p>
+    <a href="{% url 'catalog:product_list' %}" class="btn btn-dark">Browse the shop</a>
+  </div>
+{% endif %}
+{% endblock %}

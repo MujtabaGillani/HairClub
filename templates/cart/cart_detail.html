@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static core_tags %}
+{% block title %}Your cart | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero py-4">
+  <div class="container"><h1 class="mb-0">Your cart</h1></div>
+</section>
+
+<section class="section-sm">
+  <div class="container">
+    {% if cart.lines %}
+      <div class="row g-4">
+        <div class="col-lg-8">
+          <div class="hc-card">
+            <ul class="list-unstyled mb-0">
+              {% for line in cart %}
+                {% with product=line.product image=line.product.primary_image %}
+                <li class="d-flex gap-3 p-3 p-md-4 {% if not forloop.last %}border-bottom{% endif %}">
+                  <a href="{{ product.get_absolute_url }}"><img class="cart-thumb" src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="{{ product.name }}"></a>
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex justify-content-between gap-2">
+                      <div>
+                        <div class="product-category">{{ product.category.name }}</div>
+                        <a href="{{ product.get_absolute_url }}" class="fw-semibold text-decoration-none text-reset">{{ product.name }}</a>
+                        <div class="small text-muted mt-1">{{ line.unit_price|money }} each{% if product.has_discount %} <span class="price-old">{{ product.price|money }}</span>{% endif %}</div>
+                      </div>
+                      <div class="fw-bold text-nowrap">{{ line.line_total|money }}</div>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                      <form method="post" action="{% url 'cart:update' product.pk %}" class="d-flex align-items-center gap-2">
+                        {% csrf_token %}
+                        <div class="qty-stepper sm">
+                          <button type="button" data-qty-step="-1" aria-label="Decrease quantity"><i class="bi bi-dash"></i></button>
+                          <input type="number" name="quantity" value="{{ line.quantity }}" min="0" max="{{ line.max_quantity }}" aria-label="Quantity for {{ product.name }}" data-autosubmit>
+                          <button type="button" data-qty-step="1" aria-label="Increase quantity"><i class="bi bi-plus"></i></button>
+                        </div>
+                        <noscript><button class="btn btn-sm btn-outline-dark" type="submit">Update</button></noscript>
+                      </form>
+                      <form method="post" action="{% url 'cart:remove' product.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link btn-sm text-danger p-0 text-decoration-none"><i class="bi bi-trash3 me-1"></i>Remove</button>
+                      </form>
+                      {% if product.is_low_stock %}<span class="stock-pill low small">Only {{ product.stock }} left</span>{% endif %}
+                    </div>
+                  </div>
+                </li>
+                {% endwith %}
+              {% endfor %}
+            </ul>
+          </div>
+          <a href="{% url 'catalog:product_list' %}" class="btn btn-link text-decoration-none mt-3 px-0"><i class="bi bi-arrow-left me-1"></i> Continue shopping</a>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="hc-card summary-card">
+            <div class="hc-card-body">
+              <h2 class="h5 mb-3">Order summary</h2>
+              <div class="summary-row"><span>Subtotal ({{ cart|length }} item{{ cart|length|pluralize }})</span><span>{{ cart.subtotal|money }}</span></div>
+              <div class="summary-row"><span>Standard delivery</span><span>{% if shipping_estimate %}{{ shipping_estimate|money }}{% else %}Free{% endif %}</span></div>
+              {% if free_shipping_remaining %}
+                <div class="small text-muted mb-2"><i class="bi bi-truck me-1"></i>Add {{ free_shipping_remaining|money }} more for free delivery.</div>
+              {% endif %}
+              <div class="summary-row summary-total"><span>Estimated total</span><span>{{ estimated_total|money }}</span></div>
+              <a href="{% url 'orders:checkout' %}" class="btn btn-dark btn-lg w-100 mt-3">Checkout <i class="bi bi-lock ms-1"></i></a>
+              {% if not user.is_authenticated %}<p class="small text-muted text-center mt-3 mb-0">No account needed: check out as a guest, or <a href="{% url 'account_login' %}?next={% url 'orders:checkout' %}">sign in</a>.</p>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-bag"></i></div>
+        <h2 class="h3">Your cart is empty</h2>
+        <p class="text-muted mb-4">Browse our hair systems and professional care products.</p>
+        <a href="{% url 'catalog:product_list' %}" class="btn btn-dark btn-lg">Start shopping</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

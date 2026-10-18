@@ -1,0 +1,41 @@
+{% extends "accounts/base.html" %}
+{% load core_tags %}
+{% block title %}My account | {{ site_settings.business_name }}{% endblock %}
+
+{% block account_content %}
+<h2 class="h4 mb-4">Welcome back, {{ user.display_name }}</h2>
+<div class="row g-3 mb-4">
+  <div class="col-sm-4"><a href="{% url 'accounts:orders' %}" class="text-reset text-decoration-none"><div class="stat-tile"><span class="text-muted small">Orders</span><strong>{{ order_count }}</strong></div></a></div>
+  <div class="col-sm-4"><a href="{% url 'accounts:appointments' %}" class="text-reset text-decoration-none"><div class="stat-tile"><span class="text-muted small">Upcoming appointments</span><strong>{{ upcoming_count }}</strong></div></a></div>
+  <div class="col-sm-4"><a href="{% url 'wishlist:list' %}" class="text-reset text-decoration-none"><div class="stat-tile"><span class="text-muted small">Favourites</span><strong>{{ wishlist_count }}</strong></div></a></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-6">
+    <div class="hc-card h-100"><div class="hc-card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h3 class="h6 mb-0">Upcoming appointments</h3><a href="{% url 'appointments:book' %}" class="small">Book new</a></div>
+      {% for appt in upcoming_appointments %}
+        <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
+          <div><div class="fw-semibold">{{ appt.service.name }}</div><div class="small text-muted">{{ appt.date|date:"D, j M" }} · {{ appt.time|time:"g:i A" }}</div></div>
+          <span class="badge text-bg-{{ appt.status|status_badge }}">{{ appt.get_status_display }}</span>
+        </div>
+      {% empty %}
+        <p class="text-muted small mb-0">No upcoming appointments.</p>
+      {% endfor %}
+    </div></div>
+  </div>
+  <div class="col-xl-6">
+    <div class="hc-card h-100"><div class="hc-card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h3 class="h6 mb-0">Recent orders</h3><a href="{% url 'accounts:orders' %}" class="small">View all</a></div>
+      {% for order in recent_orders %}
+        <a href="{{ order.get_absolute_url }}" class="d-flex justify-content-between align-items-center py-2 text-reset text-decoration-none {% if not forloop.last %}border-bottom{% endif %}">
+          <div><div class="fw-semibold">{{ order.number }}</div><div class="small text-muted">{{ order.created_at|date:"j M Y" }} · {{ order.total|money }}</div></div>
+          <span class="badge text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span>
+        </a>
+      {% empty %}
+        <p class="text-muted small mb-0">No orders yet. <a href="{% url 'catalog:product_list' %}">Visit the shop</a>.</p>
+      {% endfor %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}

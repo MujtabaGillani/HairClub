@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load core_tags %}
+{% block title %}Book an appointment | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li><li class="breadcrumb-item active" aria-current="page">Book appointment</li></ol></nav>
+    <h1>Book an appointment</h1>
+    <p class="lead-muted mb-0">Choose a treatment and time. We'll send your request to our team on WhatsApp and confirm your slot.</p>
+  </div>
+</section>
+
+<section class="section-sm">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="hc-card"><div class="hc-card-body p-md-5">
+          <form method="post" novalidate data-booking-form data-slots-url="{% url 'appointments:slots' %}">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+            <h2 class="h5 mb-3">Your details</h2>
+            <div class="row">
+              <div class="col-12">{{ form.full_name.as_field_group }}</div>
+              <div class="col-md-6">{{ form.phone.as_field_group }}</div>
+              <div class="col-md-6">{{ form.email.as_field_group }}</div>
+            </div>
+            <h2 class="h5 mb-3 mt-2">Appointment</h2>
+            {{ form.service.as_field_group }}
+            <div class="row">
+              <div class="col-md-6">{{ form.date.as_field_group }}</div>
+              <div class="col-md-6">
+                {{ form.time.as_field_group }}
+                <div class="slot-hint text-muted mt-n2 mb-3" data-slot-hint aria-live="polite"></div>
+              </div>
+            </div>
+            {{ form.notes.as_field_group }}
+            <button type="submit" class="btn btn-dark btn-lg w-100"><i class="bi bi-whatsapp me-2"></i>Send booking request</button>
+            <p class="small text-muted text-center mt-3 mb-0">Submitting opens WhatsApp with your booking details pre-filled. Just press send.</p>
+          </form>
+        </div></div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="booking-aside">
+          <span class="eyebrow">What to expect</span>
+          <h2 class="h4 mb-4">Your visit</h2>
+          <div class="info-row"><i class="bi bi-1-circle"></i><div>Send your request<small>Your details are shared with our team on WhatsApp.</small></div></div>
+          <div class="info-row"><i class="bi bi-2-circle"></i><div>We confirm<small>A specialist confirms your slot, usually within the hour.</small></div></div>
+          <div class="info-row"><i class="bi bi-3-circle"></i><div>Visit the studio<small>Private, one-to-one consultation and treatment.</small></div></div>
+          <hr class="border-secondary my-4">
+          <div class="info-row"><i class="bi bi-geo-alt"></i><div>{{ site_settings.address }}</div></div>
+          <div class="info-row"><i class="bi bi-clock"></i><div>{{ site_settings.opening_time|time:"g:i A" }} – {{ site_settings.closing_time|time:"g:i A" }}{% if site_settings.closed_weekday_names %}<small>Closed {{ site_settings.closed_weekday_names|join:", " }}</small>{% endif %}</div></div>
+          <div class="info-row mb-0"><i class="bi bi-whatsapp"></i><div>+{{ site_settings.whatsapp_number }}<small>Questions first? <a href="{{ whatsapp_chat_url }}" target="_blank" rel="noopener" class="text-white">Chat with us</a></small></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

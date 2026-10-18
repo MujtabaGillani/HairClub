@@ -1,0 +1,112 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}Inventory{% endblock %}
+{% block heading %}Inventory management{% endblock %}
+{% block actions %}<a href="{% url 'dashboard:stock_history' %}" class="btn btn-outline-dark btn-sm"><i class="bi bi-clock-history me-1"></i><span class="d-none d-sm-inline">Stock history</span></a>{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-box-seam"></i></div><div><div class="kpi-label">Products</div><div class="kpi-value">{{ product_total }}</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-stack"></i></div><div><div class="kpi-label">Units in stock</div><div class="kpi-value">{{ total_units }}</div></div></div></div>
+  <div class="col-6 col-xl-3"><a href="?stock=low" class="text-reset text-decoration-none"><div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-exclamation-circle"></i></div><div><div class="kpi-label">Low stock</div><div class="kpi-value">{{ low_count }}</div></div></div></a></div>
+  <div class="col-6 col-xl-3"><a href="?stock=out" class="text-reset text-decoration-none"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-x-octagon"></i></div><div><div class="kpi-label">Out of stock</div><div class="kpi-value">{{ out_count }}</div></div></div></a></div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <form method="get" class="filter-bar flex-grow-1" role="search">
+      <input type="search" name="q" value="{{ request.GET.q }}" class="form-control search-input" placeholder="Search name or SKU…" aria-label="Search inventory">
+      <select name="category" class="form-select w-auto" aria-label="Category" data-autosubmit>
+        <option value="">All categories</option>
+        {% for category in categories %}<option value="{{ category.slug }}" {% if request.GET.category == category.slug %}selected{% endif %}>{{ category.name }}</option>{% endfor %}
+      </select>
+      <select name="stock" class="form-select w-auto" aria-label="Stock level" data-autosubmit>
+        <option value="">All stock levels</option>
+        <option value="in" {% if request.GET.stock == "in" %}selected{% endif %}>Healthy</option>
+        <option value="low" {% if request.GET.stock == "low" %}selected{% endif %}>Low stock</option>
+        <option value="out" {% if request.GET.stock == "out" %}selected{% endif %}>Out of stock</option>
+      </select>
+      <button class="btn btn-outline-dark btn-sm" type="submit">Filter</button>
+      {% if request.GET %}<a href="{% url 'dashboard:inventory' %}" class="small">Clear</a>{% endif %}
+    </form>
+  </div>
+  {% if products %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Product</th><th>SKU</th><th>In stock</th><th>Alert at</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for product in products %}
+          <tr>
+            <td><a href="{% url 'dashboard:product_update' product.pk %}" class="fw-semibold text-reset">{{ product.name }}</a><div class="small text-muted">{{ product.category.name }}</div></td>
+            <td class="small text-muted">{{ product.sku }}</td>
+            <td class="fw-bold fs-6">{{ product.stock }}</td>
+            <td class="text-muted">{{ product.low_stock_threshold }}</td>
+            <td>
+              {% if product.stock_status == "out" %}<span class="badge text-bg-danger">Out of stock</span>
+              {% elif product.stock_status == "low" %}<span class="badge text-bg-warning">Low stock</span>
+              {% else %}<span class="badge text-bg-success">In stock</span>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#adjustModal"
+                      data-adjust-url="{% url 'dashboard:stock_adjust' product.pk %}" data-product-name="{{ product.name }}" data-product-stock="{{ product.stock }}">
+                <i class="bi bi-plus-slash-minus me-1"></i>Adjust
+              </button>
+              <a href="{% url 'dashboard:product_stock_history' product.pk %}" class="btn btn-sm btn-icon btn-outline-dark" title="Stock history" aria-label="Stock history for {{ product.name }}"><i class="bi bi-clock-history"></i></a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-boxes"></i></div><h2 class="h5">No products match</h2><p class="text-muted mb-0">Adjust your filters or add products first.</p></div>
+  {% endif %}
+</div>
+{% include "partials/pagination.html" %}
+
+<div class="modal fade" id="adjustModal" tabindex="-1" aria-labelledby="adjustModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" class="modal-content" data-adjust-form>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title h5" id="adjustModalLabel">Adjust stock</h2>
+          <div class="small text-muted"><span data-adjust-name></span> · currently <strong data-adjust-stock></strong> in stock</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <fieldset class="mb-3">
+          <legend class="form-label fs-6">Action</legend>
+          <div class="btn-group w-100" role="group">
+            {% for value, label in adjustment_form.fields.mode.choices %}
+              <input type="radio" class="btn-check" name="mode" id="mode-{{ value }}" value="{{ value }}" {% if forloop.first %}checked{% endif %}>
+              <label class="btn btn-outline-dark btn-sm" for="mode-{{ value }}">{{ label }}</label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <div class="row">
+          <div class="col-5">
+            <label class="form-label" for="adj-qty">Quantity</label>
+            <input type="number" class="form-control" id="adj-qty" name="quantity" min="0" required>
+          </div>
+          <div class="col-7">
+            <label class="form-label" for="adj-reason">Reason</label>
+            <select class="form-select" id="adj-reason" name="reason">
+              {% for value, label in adjustment_form.fields.reason.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <label class="form-label mt-3" for="adj-note">Note (optional)</label>
+        <input type="text" class="form-control" id="adj-note" name="note" maxlength="255" placeholder="e.g. Supplier invoice #1234">
+        <div class="bg-cream rounded-3 p-3 mt-3 small d-flex justify-content-between"><span class="text-muted">New stock level</span><strong data-adjust-preview>–</strong></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-dark">Save adjustment</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

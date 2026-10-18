@@ -1,0 +1,34 @@
+{% extends "account/base_entrance.html" %}
+{% load allauth account socialaccount %}
+{% block head_title %}Create account{% endblock head_title %}
+
+{% block content %}
+<div class="text-center mb-4">
+  <span class="brand-mark mx-auto mb-3">H</span>
+  <h1 class="h3 mb-1">Create your account</h1>
+  <p class="text-muted small mb-0">Faster checkout, order tracking and saved favourites.</p>
+</div>
+
+{% get_providers as socialaccount_providers %}
+{% if socialaccount_providers %}
+  {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+  <div class="divider-text">or sign up with email</div>
+{% endif %}
+
+<form method="post" action="{% url 'account_signup' %}" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger small">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  <div class="row">
+    <div class="col-sm-6">{{ form.first_name.as_field_group }}</div>
+    <div class="col-sm-6">{{ form.last_name.as_field_group }}</div>
+  </div>
+  {{ form.email.as_field_group }}
+  {{ form.phone.as_field_group }}
+  {{ form.password1.as_field_group }}
+  {% if form.password2 %}{{ form.password2.as_field_group }}{% endif %}
+  {{ redirect_field }}
+  <button type="submit" class="btn btn-dark btn-lg w-100">Create account</button>
+</form>
+
+<p class="text-center small text-muted mt-4 mb-0">Already have an account? <a href="{{ login_url }}">Sign in</a></p>
+{% endblock content %}

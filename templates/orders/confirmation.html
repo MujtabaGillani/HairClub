@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load core_tags %}
+{% block title %}Thank you for your order | {{ site_settings.business_name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container container-narrow">
+    <div class="text-center mb-5">
+      <div class="success-icon"><i class="bi bi-check-lg"></i></div>
+      <h1 class="h2">Thank you, {{ order.full_name }}!</h1>
+      <p class="text-muted">Your order has been received. A confirmation has been sent to <strong>{{ order.email }}</strong>.</p>
+      <span class="ref-chip"><i class="bi bi-receipt"></i>Order {{ order.number }}</span>
+    </div>
+
+    {% if order.payment_method == "bank_transfer" and site_settings.bank_transfer_instructions %}
+      <div class="alert bg-cream border mb-4">
+        <h2 class="h6"><i class="bi bi-bank me-1"></i>Complete your bank transfer</h2>
+        <p class="small mb-2">Please transfer <strong>{{ order.total|money }}</strong> and use <strong>{{ order.number }}</strong> as the reference.</p>
+        <div class="small">{{ site_settings.bank_transfer_instructions|linebreaksbr }}</div>
+      </div>
+    {% endif %}
+
+    {% include "orders/partials/order_summary.html" %}
+
+    <div class="d-flex flex-wrap gap-2 justify-content-center mt-4">
+      <a href="{{ whatsapp_url }}" target="_blank" rel="noopener" class="btn btn-whatsapp"><i class="bi bi-whatsapp me-1"></i> Message us about this order</a>
+      <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-dark">Continue shopping</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
