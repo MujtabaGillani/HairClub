@@ -11,9 +11,19 @@ from apps.inventory.models import MovementReason, StockMovement
 from apps.inventory.services import InsufficientStock, adjust_stock
 
 from ..forms import StockAdjustmentForm
+from ..sorting import SortableListMixin
 
 
-class InventoryListView(VendorRequiredMixin, ListView):
+class InventoryListView(VendorRequiredMixin, SortableListMixin, ListView):
+    sort_options = {
+        "stock_asc": ("Stock: low to high", ["stock", "name"]),
+        "stock_desc": ("Stock: high to low", ["-stock", "name"]),
+        "name": ("Name A–Z", ["name"]),
+        "name_desc": ("Name Z–A", ["-name"]),
+        "sku": ("SKU", ["sku"]),
+    }
+    default_sort = "stock_asc"
+
     template_name = "dashboard/inventory/list.html"
     context_object_name = "products"
     paginate_by = 20
@@ -30,7 +40,7 @@ class InventoryListView(VendorRequiredMixin, ListView):
             qs = qs.out_of_stock()
         elif stock == "in":
             qs = qs.filter(stock__gt=F("low_stock_threshold"))
-        return qs.order_by("stock", "name")
+        return self.apply_sort(qs)
 
     def get_context_data(self, **kwargs):
         cost_per_unit = F("purchase_cost") + F("inbound_shipping_cost") + F("other_cost")

@@ -24,10 +24,10 @@
 {% endif %}
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-cash-stack"></i></div><div><div class="kpi-label">Revenue</div><div class="kpi-value">{{ report.revenue|money }}</div><div class="kpi-sub">{{ report.orders_delivered }} order{{ report.orders_delivered|pluralize }} · {{ report.services_completed }} service{{ report.services_completed|pluralize }}</div></div></div></div>
-  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-box-seam"></i></div><div><div class="kpi-label">Gross profit</div><div class="kpi-value">{{ report.gross_profit|money }}</div><div class="kpi-sub">{% if report.gross_margin is not None %}{{ report.gross_margin }}% margin{% else %}No revenue yet{% endif %}</div></div></div></div>
-  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-wallet2"></i></div><div><div class="kpi-label">Expenses</div><div class="kpi-value">{{ report.expenses_total|money }}</div><div class="kpi-sub"><a href="{% url 'dashboard:expense_list' %}">View expenses</a></div></div></div></div>
-  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon {% if report.net_profit < 0 %}red{% else %}green{% endif %}"><i class="bi {% if report.net_profit < 0 %}bi-arrow-down-right{% else %}bi-arrow-up-right{% endif %}"></i></div><div><div class="kpi-label">Net {% if report.net_profit < 0 %}loss{% else %}profit{% endif %}</div><div class="kpi-value">{{ report.net_profit|money }}</div><div class="kpi-sub">{% if report.net_margin is not None %}{{ report.net_margin }}% of revenue{% else %}—{% endif %}</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-cash-stack"></i></div><div><div class="kpi-label">Revenue</div><div class="kpi-value">{{ report.revenue|money }}</div><div class="kpi-compare">{% include "dashboard/partials/delta.html" with d=deltas.revenue %}<span>vs {{ compare_label }}</span></div><div class="kpi-sub">{{ report.orders_delivered }} order{{ report.orders_delivered|pluralize }} · {{ report.services_completed }} service{{ report.services_completed|pluralize }}</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-box-seam"></i></div><div><div class="kpi-label">Gross profit</div><div class="kpi-value">{{ report.gross_profit|money }}</div><div class="kpi-compare">{% include "dashboard/partials/delta.html" with d=deltas.gross_profit %}<span>vs {{ compare_label }}</span></div><div class="kpi-sub">{% if report.gross_margin is not None %}{{ report.gross_margin }}% margin{% else %}No revenue yet{% endif %}</div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-wallet2"></i></div><div><div class="kpi-label">Expenses</div><div class="kpi-value">{{ report.expenses_total|money }}</div><div class="kpi-compare">{% include "dashboard/partials/delta.html" with d=deltas.expenses %}<span>vs {{ compare_label }}</span></div><div class="kpi-sub"><a href="{% url 'dashboard:expense_list' %}">View expenses</a></div></div></div></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon {% if report.net_profit < 0 %}red{% else %}green{% endif %}"><i class="bi {% if report.net_profit < 0 %}bi-arrow-down-right{% else %}bi-arrow-up-right{% endif %}"></i></div><div><div class="kpi-label">Net {% if report.net_profit < 0 %}loss{% else %}profit{% endif %}</div><div class="kpi-value">{{ report.net_profit|money }}</div><div class="kpi-compare">{% include "dashboard/partials/delta.html" with d=deltas.net_profit %}<span>vs {{ compare_label }}</span></div><div class="kpi-sub">{% if report.net_margin is not None %}{{ report.net_margin }}% of revenue{% else %}—{% endif %}</div></div></div></div>
 </div>
 
 <div class="row g-4 mb-4">
@@ -81,52 +81,63 @@
 
 <div class="panel mb-4 viz-root">
   <div class="panel-header">
-    <h2>Revenue vs costs · last 12 months</h2>
+    <h2>Revenue, costs &amp; profit by month</h2>
     <div class="viz-legend small" aria-hidden="true">
       <span><i class="viz-swatch s1"></i>Revenue</span>
-      <span><i class="viz-swatch s2"></i>Costs (goods + expenses)</span>
+      <span><i class="viz-swatch s2"></i>Costs</span>
+      <span><i class="viz-linekey"></i>Net profit</span>
     </div>
   </div>
   <div class="panel-body">
     {% if chart.has_data %}
-      <div class="viz-wrap" data-viz>
-        <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" class="viz-svg" role="img" aria-label="Monthly revenue and costs for the last 12 months. Values are listed in the table below.">
-          {% for tick in chart.ticks %}
-            <line x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ tick.y }}" y2="{{ tick.y }}" class="viz-grid"></line>
-            <text x="{{ chart.left|add:'-8' }}" y="{{ tick.y }}" class="viz-tick" text-anchor="end" dominant-baseline="middle">{{ tick.label }}</text>
-          {% endfor %}
-          {% for m in chart.months %}
-            <path d="{{ m.revenue_path }}" class="viz-col s1"></path>
-            <path d="{{ m.costs_path }}" class="viz-col s2"></path>
-            <text x="{{ m.x }}" y="{{ chart.label_y }}" class="viz-tick" text-anchor="middle">{{ m.label }}</text>
-            <rect x="{{ m.band_x }}" y="0" width="{{ m.band_w }}" height="{{ chart.base }}" class="viz-hit" tabindex="0"
-                  data-label="{{ m.month|date:'F Y' }}" data-revenue="{{ m.revenue|money }}" data-costs="{{ m.costs|money }}"
-                  data-cogs="{{ m.cogs|money }}" data-expenses="{{ m.expenses|money }}" data-net="{{ m.net|money }}"
-                  aria-label="{{ m.month|date:'F Y' }}: revenue {{ m.revenue|money }}, costs {{ m.costs|money }}, net {{ m.net|money }}"></rect>
-          {% endfor %}
-          <line x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ chart.base }}" y2="{{ chart.base }}" class="viz-axis"></line>
-        </svg>
+      <dl class="viz-summary">
+        <div><dt><i class="viz-swatch s1"></i>Revenue</dt><dd>{{ chart.totals.revenue|money }}</dd></div>
+        <div><dt><i class="viz-swatch s2"></i>Costs</dt><dd>{{ chart.totals.costs|money }}</dd></div>
+        <div><dt><i class="viz-linekey"></i>Net {% if chart.totals.net < 0 %}loss{% else %}profit{% endif %}</dt><dd>{{ chart.totals.net|money }}{% if chart.totals.margin is not None %} <span class="viz-summary-sub">{{ chart.totals.margin }}% margin</span>{% endif %}</dd></div>
+        <div class="viz-summary-range"><dt>Showing</dt><dd>{% with last=chart.rows|last %}{{ chart.rows.0.month|date:"M Y" }} – {{ last.month|date:"M Y" }}{% endwith %}</dd></div>
+      </dl>
+      <div class="viz-chart" data-viz-chart data-currency="{{ currency_symbol }}" role="img"
+           aria-label="Monthly revenue and costs as columns, with net profit as a line. Exact values are in the Month by month table below.">
+        <svg class="viz-svg" aria-hidden="true"></svg>
         <div class="viz-tooltip" role="status" hidden></div>
       </div>
+      {{ chart.json|json_script:"viz-trend-data" }}
     {% else %}
-      <p class="text-muted small mb-0">No delivered orders, completed services or expenses in the last 12 months yet.</p>
+      <div class="empty-state py-4"><div class="empty-icon"><i class="bi bi-bar-chart"></i></div><p class="text-muted small mb-0">No delivered orders, completed services or expenses in the last 12 months yet.</p></div>
     {% endif %}
-
-    <details class="mt-3"{% if not chart.has_data %} hidden{% endif %}>
-      <summary class="small fw-semibold">Show as table</summary>
-      <div class="table-responsive mt-2">
-        <table class="table table-sm align-middle table-stack mb-0 viz-table">
-          <thead><tr><th>Month</th><th class="text-end">Revenue</th><th class="text-end">Cost of goods</th><th class="text-end">Expenses</th><th class="text-end">Net</th></tr></thead>
-          <tbody>
-            {% for m in chart.months %}
-              <tr><td data-main>{{ m.month|date:"F Y" }}</td><td data-label="Revenue" class="text-end">{{ m.revenue|money }}</td><td data-label="Cost of goods" class="text-end">{{ m.cogs|money }}</td><td data-label="Expenses" class="text-end">{{ m.expenses|money }}</td><td data-label="Net" class="text-end fw-semibold">{{ m.net|money }}</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </details>
   </div>
 </div>
+
+{% if chart.has_data %}
+<div class="panel mb-4">
+  <div class="panel-header">
+    <h2>Month by month</h2>
+    <span class="small text-muted">Change vs the previous month · <span class="delta is-good">green</span> good, <span class="delta is-bad">red</span> bad</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table align-middle table-stack monthly-table">
+      <thead><tr>
+        <th scope="col">Month</th>
+        <th scope="col" class="text-end">Revenue</th>
+        <th scope="col" class="text-end">Cost of goods</th>
+        <th scope="col" class="text-end">Expenses</th>
+        <th scope="col" class="text-end">Net profit</th>
+      </tr></thead>
+      <tbody>
+        {% for m in chart.rows reversed %}
+          <tr>
+            <td data-main class="fw-semibold">{{ m.month|date:"F Y" }}{% if m.compare_label %}<div class="small text-muted fw-normal">so far · vs {{ m.compare_label }}</div>{% endif %}</td>
+            <td data-label="Revenue" class="text-end"><span class="money-cell">{{ m.revenue|money }}</span>{% include "dashboard/partials/delta.html" with d=m.revenue_delta %}</td>
+            <td data-label="Cost of goods" class="text-end"><span class="money-cell text-muted">{{ m.cogs|money }}</span></td>
+            <td data-label="Expenses" class="text-end"><span class="money-cell">{{ m.expenses|money }}</span>{% include "dashboard/partials/delta.html" with d=m.expenses_delta %}</td>
+            <td data-label="Net profit" class="text-end fw-semibold"><span class="money-cell">{{ m.net|money }}</span>{% include "dashboard/partials/delta.html" with d=m.net_delta %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 
 <div class="row g-4">
   <div class="col-xl-8">

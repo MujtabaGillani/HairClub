@@ -11,7 +11,7 @@
         {% if user.is_authenticated %}<li class="breadcrumb-item"><a href="{% url 'accounts:orders' %}">My orders</a></li>{% endif %}
         <li class="breadcrumb-item active" aria-current="page">{{ order.number }}</li>
       </ol></nav>
-      <h1 class="h2 mb-0">Order {{ order.number }}</h1>
+      <h1 class="h2 mb-0 d-flex align-items-center gap-2">Order {{ order.number }}{% include "partials/copy_button.html" with value=order.number label="order number" %}</h1>
       <p class="text-muted mb-0 small">Placed {{ order.created_at|date:"j F Y, g:i A" }}</p>
     </div>
     <span class="badge fs-6 text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span>

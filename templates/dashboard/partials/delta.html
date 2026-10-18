@@ -1,0 +1,4 @@
+{% comment %}
+  Change badge. Usage: {% include "dashboard/partials/delta.html" with d=deltas.revenue %}
+  Green = good for the business, red = bad (for costs, going up is bad). Arrow shows direction.
+{% endcomment %}{% if d %}{% if d.pct is not None %}<span class="delta{% if d.is_good %} is-good{% elif d.is_good is False %} is-bad{% endif %}" title="{% if d.direction == 'flat' %}No change{% else %}{{ d.direction|capfirst }} {{ d.pct_abs }}%{% endif %}"><i class="bi {% if d.direction == 'up' %}bi-arrow-up-short{% elif d.direction == 'down' %}bi-arrow-down-short{% else %}bi-dash{% endif %}" aria-hidden="true"></i><span class="visually-hidden">{% if d.direction == 'up' %}up{% elif d.direction == 'down' %}down{% else %}unchanged{% endif %} </span>{{ d.pct_abs }}%</span>{% elif d.current %}<span class="delta is-new" title="Nothing in the previous period">New</span>{% endif %}{% endif %}

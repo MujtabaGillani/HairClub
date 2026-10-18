@@ -402,6 +402,27 @@ h4, h5, h6 { font-weight: 600; }
 .assurance-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
 .assurance-list li { display: flex; gap: 0.75rem; align-items: flex-start; font-size: 0.92rem; }
 .assurance-list i { color: var(--hc-gold-600); font-size: 1.15rem; }
+/* Favourite + Ask a question: two matching pill buttons on one baseline */
+.product-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.product-actions form { margin: 0; }
+.product-actions .btn { display: inline-flex; align-items: center; gap: 0.45rem; height: 44px; padding: 0 1.15rem; }
+.btn-favourite .bi-heart-fill, .btn-favourite .when-on { display: none; }
+.btn-favourite.is-active .bi-heart-fill, .btn-favourite.is-active .when-on { display: inline; }
+.btn-favourite.is-active .bi-heart, .btn-favourite.is-active .when-off { display: none; }
+.btn-favourite.is-active .bi-heart-fill { color: var(--hc-danger); }
+.btn-favourite.is-active:hover .bi-heart-fill { color: inherit; }
+/* Accordion in brand colours (Bootstrap declares these vars on .accordion itself) */
+.accordion {
+  --bs-accordion-bg: var(--hc-surface);
+  --bs-accordion-color: var(--hc-text);
+  --bs-accordion-btn-color: var(--hc-text);
+  --bs-accordion-active-bg: var(--hc-cream);
+  --bs-accordion-active-color: var(--hc-text);
+  --bs-accordion-border-color: var(--hc-sand);
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(196, 162, 122, 0.3);
+  --bs-accordion-btn-active-icon: var(--bs-accordion-btn-icon);
+}
+.accordion-button { font-weight: 600; }
 .spec-table th { width: 40%; color: var(--hc-muted); font-weight: 500; }
 
 /* ---------- Shop filters ---------- */
@@ -450,6 +471,17 @@ h4, h5, h6 { font-weight: 600; }
   border-radius: 999px; background: var(--hc-cream); border: 1px dashed var(--hc-gold);
   font-weight: 600; letter-spacing: 0.04em;
 }
+.btn-copy {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; margin-left: 0.35rem; flex-shrink: 0;
+  border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--hc-muted);
+  font-size: 0.9rem; line-height: 1; vertical-align: middle; cursor: pointer; transition: all var(--hc-transition);
+}
+.btn-copy:hover { color: var(--hc-text); background: var(--hc-cream); border-color: var(--hc-sand); }
+.btn-copy .bi-check2 { display: none; }
+.btn-copy.is-copied { color: var(--hc-success); }
+.btn-copy.is-copied .bi-copy { display: none; }
+.btn-copy.is-copied .bi-check2 { display: inline; }
+h1 .btn-copy, .dash-topbar h1 .btn-copy { font-size: 1rem; }
 .timeline { list-style: none; padding: 0; margin: 0; position: relative; }
 .timeline li { position: relative; padding: 0 0 1.25rem 1.75rem; }
 .timeline li::before {

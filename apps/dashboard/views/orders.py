@@ -10,35 +10,78 @@ from apps.orders.models import Order, OrderStatus
 from apps.orders.services import InvalidTransition, change_order_status, mark_order_paid
 
 from ..forms import OrderFilterForm, OrderStatusForm
+from ..sorting import DATE_PRESETS, SortableListMixin, resolve_date_range
 
 
-class OrderListView(VendorRequiredMixin, ListView):
+class OrderListView(VendorRequiredMixin, SortableListMixin, ListView):
     template_name = "dashboard/orders/list.html"
     context_object_name = "orders"
     paginate_by = 20
+    sort_options = {
+        "newest": ("Newest first", ["-created_at"]),
+        "oldest": ("Oldest first", ["created_at"]),
+        "total_desc": ("Total: high to low", ["-total"]),
+        "total_asc": ("Total: low to high", ["total"]),
+        "customer": ("Customer A–Z", ["full_name"]),
+        "customer_desc": ("Customer Z–A", ["-full_name"]),
+        "items_desc": ("Most items", ["-units"]),
+        "items_asc": ("Fewest items", ["units"]),
+        "status": ("Status", ["status"]),
+        "status_desc": ("Status (reverse)", ["-status"]),
+    }
+    default_sort = "newest"
 
     def get_queryset(self):
-        self.filter_form = OrderFilterForm(self.request.GET or None)
-        qs = Order.objects.annotate(units=Sum("items__quantity")).order_by("-created_at")
+        params = self.request.GET
+        self.filter_form = OrderFilterForm(params or None)
+        self.date_from, self.date_to, self.date_preset = resolve_date_range(params)
+
+        # Everything except the status filter, so the status tabs show counts for the current search/dates.
+        base = Order.objects.all()
+        if self.date_from:
+            base = base.filter(created_at__date__gte=self.date_from)
+        if self.date_to:
+            base = base.filter(created_at__date__lte=self.date_to)
         if self.filter_form.is_valid():
             data = self.filter_form.cleaned_data
             if term := (data.get("q") or "").strip():
-                qs = qs.filter(
+                base = base.filter(
                     Q(number__icontains=term)
                     | Q(full_name__icontains=term)
                     | Q(email__icontains=term)
                     | Q(phone__icontains=term)
                 )
-            if data.get("status"):
-                qs = qs.filter(status=data["status"])
-        return qs
+            if data.get("payment_status"):
+                base = base.filter(payment_status=data["payment_status"])
+            if data.get("payment_method"):
+                base = base.filter(payment_method=data["payment_method"])
+        self.base_qs = base
+
+        qs = base
+        if self.filter_form.is_valid() and self.filter_form.cleaned_data.get("status"):
+            qs = qs.filter(status=self.filter_form.cleaned_data["status"])
+        self.filtered_qs = qs
+        return self.apply_sort(qs.annotate(units=Sum("items__quantity")))
 
     def get_context_data(self, **kwargs):
-        status_counts = dict(Order.objects.values_list("status").annotate(n=Count("id")).order_by())
+        status_counts = dict(self.base_qs.values_list("status").annotate(n=Count("id")).order_by())
+        totals = self.filtered_qs.aggregate(value=Sum("total"), count=Count("id"))
+        params = self.request.GET.copy()
+        params.pop("status", None)
+        params.pop("page", None)
         return super().get_context_data(
             nav="orders",
             filter_form=self.filter_form,
             status_counts=[(value, label, status_counts.get(value, 0)) for value, label in OrderStatus.choices],
+            status_total=sum(status_counts.values()),
+            tab_query=params.urlencode(),
+            filtered_value=totals["value"] or 0,
+            date_from=self.date_from,
+            date_to=self.date_to,
+            date_preset=self.date_preset,
+            date_presets=DATE_PRESETS,
+            has_filters=any(params.get(k) for k in ("q", "range", "from", "to", "payment_status", "payment_method"))
+            or bool(self.request.GET.get("status")),
             **kwargs,
         )
 

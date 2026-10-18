@@ -11,7 +11,7 @@ from apps.core.models import SiteSettings, Weekday
 from apps.finance.models import Expense, ExpenseCategory
 from apps.finance.services import PERIOD_CHOICES
 from apps.inventory.models import MovementReason
-from apps.orders.models import OrderStatus
+from apps.orders.models import OrderStatus, PaymentMethod, PaymentStatus
 
 
 class MultipleImageInput(forms.ClearableFileInput):
@@ -244,6 +244,8 @@ class AppointmentFilterForm(forms.Form):
 class OrderFilterForm(forms.Form):
     q = forms.CharField(required=False)
     status = forms.ChoiceField(choices=[("", "All statuses")] + OrderStatus.choices, required=False)
+    payment_status = forms.ChoiceField(choices=[("", "Any payment")] + PaymentStatus.choices, required=False)
+    payment_method = forms.ChoiceField(choices=[("", "Any method")] + PaymentMethod.choices, required=False)
 
 
 class ServiceForm(forms.ModelForm):

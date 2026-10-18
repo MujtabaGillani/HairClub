@@ -2,7 +2,7 @@
 {% load static core_tags %}
 {% block page_title %}Order {{ order.number }}{% endblock %}
 {% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:order_list' %}">Orders</a></li><li class="breadcrumb-item active" aria-current="page">{{ order.number }}</li></ol></nav>{% endblock %}
-{% block heading %}Order {{ order.number }}{% endblock %}
+{% block heading %}<span class="d-inline-flex align-items-center gap-2">Order {{ order.number }}{% include "partials/copy_button.html" with value=order.number label="order number" %}</span>{% endblock %}
 {% block actions %}<span class="badge fs-6 text-bg-{{ order.status|status_badge }}">{{ order.get_status_display }}</span>{% endblock %}
 
 {% block dashboard_content %}

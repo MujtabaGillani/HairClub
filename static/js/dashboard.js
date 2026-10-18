@@ -191,45 +191,221 @@
     sync();
   });
 
-  /* ---------- Finance chart tooltip ---------- */
-  $$("[data-viz]").forEach((wrap) => {
-    const tip = $(".viz-tooltip", wrap);
-    function show(hit) {
-      const d = hit.dataset;
+  /* ---------- Date range: preset vs custom dates are mutually exclusive ---------- */
+  $$(".date-range").forEach((range) => {
+    const preset = range.querySelector("[data-date-preset]");
+    const customs = $$("[data-date-custom]", range);
+    customs.forEach((input) =>
+      input.addEventListener("change", () => {
+        preset.value = "";
+        input.form.requestSubmit();
+      })
+    );
+    preset.addEventListener("change", () => customs.forEach((input) => (input.value = "")), { capture: true });
+  });
+
+  /* ---------- Finance chart: revenue & cost columns + net-profit line ---------- */
+  const chartEl = $("[data-viz-chart]");
+  const chartData = (() => {
+    try { return JSON.parse($("#viz-trend-data")?.textContent || "[]"); } catch (_) { return []; }
+  })();
+  if (chartEl && chartData.length) {
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const svg = $("svg", chartEl);
+    const tip = $(".viz-tooltip", chartEl);
+    const symbol = chartEl.dataset.currency || "";
+    const MINUS = "−";
+
+    const money = (v) => `${v < 0 ? MINUS : ""}${symbol} ${Math.abs(v).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+    const compact = (v) => {
+      const a = Math.abs(v);
+      const body = a >= 1e6 ? `${+(a / 1e6).toFixed(1)}M` : a >= 1e3 ? `${+(a / 1e3).toFixed(0)}K` : `${a}`;
+      return `${v < 0 ? MINUS : ""}${body}`;
+    };
+    const el = (name, attrs = {}, parent = svg) => {
+      const node = document.createElementNS(SVG_NS, name);
+      Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+      parent.appendChild(node);
+      return node;
+    };
+    const niceStep = (span, ticks) => {
+      const raw = span / ticks || 1;
+      const mag = 10 ** Math.floor(Math.log10(raw));
+      return [1, 2, 2.5, 5, 10].map((x) => x * mag).find((s) => raw <= s);
+    };
+    // Column with a 4px rounded data-end and a square baseline.
+    const column = (x, base, top, w) => {
+      const h = base - top;
+      if (h <= 0.5) return "";
+      const r = Math.min(4, h, w / 2);
+      return `M${x},${base}V${top + r}Q${x},${top} ${x + r},${top}H${x + w - r}Q${x + w},${top} ${x + w},${top + r}V${base}Z`;
+    };
+
+    let activeIndex = -1;
+    let layout = null;
+
+    function render() {
+      const width = chartEl.clientWidth;
+      const narrow = width < 520;
+      const height = narrow ? 240 : 300;
+      const m = { top: 22, right: 16, bottom: 30, left: narrow ? 44 : 70 };
+      const plotW = width - m.left - m.right;
+      const plotH = height - m.top - m.bottom;
+      svg.innerHTML = "";
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("width", width);
+      svg.setAttribute("height", height);
+
+      // Scale always includes zero and extends below it when a month made a loss.
+      const values = chartData.flatMap((d) => [d.revenue, d.costs, d.net]);
+      const rawMax = Math.max(0, ...values);
+      const rawMin = Math.min(0, ...values);
+      const step = niceStep(rawMax - rawMin, narrow ? 3 : 4);
+      const top = Math.max(Math.ceil(rawMax / step) * step, step);
+      const bottom = Math.floor(rawMin / step) * step;
+      const y = (v) => m.top + ((top - v) / (top - bottom)) * plotH;
+      const y0 = y(0);
+
+      const grid = el("g");
+      for (let v = bottom; v <= top + step / 2; v += step) {
+        el("line", { x1: m.left, x2: width - m.right, y1: y(v), y2: y(v), class: Math.abs(v) < 1e-9 ? "viz-zero" : "viz-grid" }, grid);
+        const t = el("text", { x: m.left - 10, y: y(v), class: "viz-tick", "text-anchor": "end", "dominant-baseline": "middle" }, grid);
+        // Narrow screens drop the currency symbol on the axis; the summary above shows it.
+        const unit = narrow ? "" : `${symbol} `;
+        t.textContent = Math.abs(v) < 1e-9 ? "0" : `${v < 0 ? MINUS : ""}${unit}${compact(Math.abs(v))}`;
+      }
+
+      const band = plotW / chartData.length;
+      const barW = Math.max(4, Math.min(24, (band - Math.max(10, band * 0.3) - 2) / 2));
+      const labelEvery = band < 46 ? 2 : 1;
+      const centers = chartData.map((_, i) => m.left + band * i + band / 2);
+
+      // Hover highlight sits under the marks.
+      const hover = el("rect", { class: "viz-band", x: 0, y: m.top - 8, width: band, height: plotH + 8, rx: 8, opacity: 0 });
+
+      const bars = el("g", { class: "viz-bars" });
+      chartData.forEach((d, i) => {
+        const cx = centers[i];
+        el("path", { d: column(cx - 1 - barW, y0, y(d.revenue), barW), class: "viz-col s1" }, bars);
+        el("path", { d: column(cx + 1, y0, y(d.costs), barW), class: "viz-col s2" }, bars);
+        if (i % labelEvery === (chartData.length - 1) % labelEvery) {
+          el("text", { x: cx, y: height - 8, class: "viz-tick", "text-anchor": "middle" }).textContent = d.label;
+        }
+      });
+
+      // Net-profit line with surface-ringed markers.
+      const pts = chartData.map((d, i) => [centers[i], y(d.net)]);
+      el("path", { d: pts.map((p, i) => `${i ? "L" : "M"}${p[0]},${p[1]}`).join(""), class: "viz-line s3" });
+      const dots = el("g");
+      pts.forEach((p) => el("circle", { cx: p[0], cy: p[1], r: 4, class: "viz-dot s3" }, dots));
+
+      // Selective direct label: the latest net value only.
+      const last = chartData.length - 1;
+      // Sits just left of the last dot, on the side away from the incoming line segment
+      // (and never above the plot's top edge).
+      const [lx, ly] = pts[last];
+      const label = el("text", { x: lx - 10, y: ly, class: "viz-direct", "text-anchor": "end", "dominant-baseline": "middle" });
+      label.textContent = `Net ${money(chartData[last].net)}`;
+      // Height of the incoming segment at the label's far (left) edge.
+      const labelLeft = lx - 10 - label.getBBox().width;
+      const [px, py] = last > 0 ? pts[last - 1] : [lx, ly];
+      const segmentY = px < lx ? ly + ((py - ly) * (lx - Math.max(labelLeft, px))) / (lx - px) : ly;
+      const roomBelow = Math.max(ly, segmentY) + 26 < m.top + plotH;
+      // Below the line when there's room, otherwise above both the point and the segment.
+      const labelY = roomBelow ? Math.max(ly, segmentY) + 16 : Math.min(ly, segmentY) - 12;
+      label.setAttribute("y", Math.max(labelY, m.top + 6));
+
+      // Whole-month hit targets, keyboard focusable.
+      const hits = el("g");
+      chartData.forEach((d, i) => {
+        const hit = el("rect", {
+          x: m.left + band * i, y: m.top - 8, width: band, height: plotH + m.bottom + 8,
+          class: "viz-hit", tabindex: 0, role: "button",
+          "aria-label": `${d.title}: revenue ${money(d.revenue)}, costs ${money(d.costs)}, net ${money(d.net)}`,
+        }, hits);
+        const show = () => showTip(i);
+        hit.addEventListener("mouseenter", show);
+        hit.addEventListener("focus", show);
+        hit.addEventListener("click", show);
+      });
+
+      layout = { hover, band, m, centers };
+      if (activeIndex >= 0) showTip(activeIndex);
+    }
+
+    function addRow(key, label, value, extra = "") {
+      const r = document.createElement("div");
+      r.className = `viz-tip-row ${extra}`.trim();
+      const name = document.createElement("span");
+      if (key) {
+        const k = document.createElement("i");
+        k.className = key;
+        name.appendChild(k);
+      }
+      name.append(label);
+      const val = document.createElement("span");
+      val.textContent = value;
+      r.append(name, val);
+      tip.appendChild(r);
+    }
+
+    function showTip(i) {
+      activeIndex = i;
+      const { hover, band, m, centers } = layout;
+      const d = chartData[i];
+      hover.setAttribute("x", m.left + band * i + 2);
+      hover.setAttribute("width", Math.max(band - 4, 0));
+      hover.setAttribute("opacity", 1);
       tip.innerHTML = "";
       const title = document.createElement("strong");
-      title.textContent = d.label;
+      title.textContent = d.title;
       tip.appendChild(title);
-      [["s1", "Revenue", d.revenue], ["s2", "Costs", d.costs], ["", "  goods", d.cogs], ["", "  expenses", d.expenses], ["net", "Net", d.net]]
-        .forEach(([key, label, value]) => {
-          const row = document.createElement("div");
-          row.className = "viz-tip-row" + (key === "net" ? " is-net" : "") + (key === "" ? " is-sub" : "");
-          const name = document.createElement("span");
-          if (key === "s1" || key === "s2") { const sw = document.createElement("i"); sw.className = `viz-swatch ${key}`; name.appendChild(sw); }
-          name.append(label.trim());
-          const val = document.createElement("span");
-          val.textContent = value;
-          row.append(name, val);
-          tip.appendChild(row);
-        });
+      addRow("viz-swatch s1", "Revenue", money(d.revenue));
+      addRow("viz-swatch s2", "Costs", money(d.costs));
+      addRow("", "Cost of goods", money(d.cogs), "is-sub");
+      addRow("", "Expenses", money(d.expenses), "is-sub");
+      addRow("viz-linekey", d.net < 0 ? "Net loss" : "Net profit", money(d.net), "is-net");
+      if (d.net_pct !== null && d.net_pct !== undefined) {
+        const change = document.createElement("div");
+        change.className = "viz-tip-change";
+        const badge = document.createElement("span");
+        badge.className = `delta ${d.net_good === true ? "is-good" : d.net_good === false ? "is-bad" : ""}`;
+        const arrow = document.createElement("i");
+        arrow.className = `bi ${d.net_pct > 0 ? "bi-arrow-up-short" : d.net_pct < 0 ? "bi-arrow-down-short" : "bi-dash"}`;
+        badge.append(arrow, `${Math.abs(d.net_pct).toFixed(1)}%`);
+        change.append(badge, " net vs previous month");
+        tip.appendChild(change);
+      }
       tip.hidden = false;
-      // Position in the wrapper's scrolled content, kept inside the visible area.
-      const box = wrap.getBoundingClientRect(), r = hit.getBoundingClientRect();
-      const x = r.left - box.left + wrap.scrollLeft + r.width / 2;
-      const minLeft = wrap.scrollLeft, maxLeft = wrap.scrollLeft + box.width - tip.offsetWidth;
-      const left = Math.min(Math.max(x - tip.offsetWidth / 2, minLeft), maxLeft);
+      // Open beside the hovered month so its columns stay visible: right if it fits, else left.
+      const gap = 10;
+      const bandLeft = m.left + band * i;
+      const right = bandLeft + band + gap;
+      const fitsRight = right + tip.offsetWidth <= chartEl.clientWidth;
+      const left = fitsRight ? right : Math.max(bandLeft - gap - tip.offsetWidth, 0);
       tip.style.left = `${left}px`;
-      $$(".viz-hit", wrap).forEach((h) => h.classList.toggle("is-active", h === hit));
+      tip.style.top = `${m.top}px`;
     }
-    function hide() { tip.hidden = true; $$(".viz-hit", wrap).forEach((h) => h.classList.remove("is-active")); }
-    $$(".viz-hit", wrap).forEach((hit) => {
-      hit.addEventListener("mouseenter", () => show(hit));
-      hit.addEventListener("focus", () => show(hit));
-      hit.addEventListener("click", () => show(hit));
-    });
-    wrap.addEventListener("mouseleave", hide);
-    wrap.addEventListener("focusout", (e) => { if (!wrap.contains(e.relatedTarget)) hide(); });
-  });
+
+    function hideTip() {
+      activeIndex = -1;
+      tip.hidden = true;
+      layout?.hover.setAttribute("opacity", 0);
+    }
+
+    chartEl.addEventListener("mouseleave", hideTip);
+    chartEl.addEventListener("focusout", (e) => { if (!chartEl.contains(e.relatedTarget)) hideTip(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideTip(); });
+
+    let frame;
+    new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(render);
+    }).observe(chartEl);
+    render();
+    // Bars grow in on first paint only; later re-renders (resize) are instant.
+    setTimeout(() => svg.classList.add("is-static"), 700);
+  }
 
   /* ---------- Stock adjustment modal ---------- */
   const adjustModal = $("#adjustModal");

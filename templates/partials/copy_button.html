@@ -1,0 +1,4 @@
+{# Usage: {% include "partials/copy_button.html" with value=order.number label="order number" %} #}
+<button type="button" class="btn-copy" data-copy="{{ value }}" aria-label="Copy {{ label|default:'to clipboard' }} {{ value }}" title="Copy {{ label|default:'' }}">
+  <i class="bi bi-copy" aria-hidden="true"></i><i class="bi bi-check2" aria-hidden="true"></i>
+</button>

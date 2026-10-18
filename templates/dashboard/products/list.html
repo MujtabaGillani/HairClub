@@ -1,5 +1,5 @@
 {% extends "dashboard/base.html" %}
-{% load static core_tags %}
+{% load static core_tags dashboard_tags %}
 {% block page_title %}Products{% endblock %}
 {% block heading %}Product management{% endblock %}
 {% block actions %}<a href="{% url 'dashboard:product_create' %}" class="btn btn-dark btn-sm btn-add" aria-label="Add product"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Add product</span></a>{% endblock %}
@@ -20,6 +20,7 @@
         <option value="hidden_price" {% if request.GET.status == "hidden_price" %}selected{% endif %}>Price hidden</option>
         <option value="on_sale" {% if request.GET.status == "on_sale" %}selected{% endif %}>On sale</option>
       </select>
+      {% include "dashboard/partials/sort_select.html" %}
       <button class="btn btn-outline-dark btn-sm" type="submit">Filter</button>
       {% if request.GET %}<a href="{% url 'dashboard:product_list' %}" class="small">Clear</a>{% endif %}
     </form>
@@ -29,7 +30,7 @@
   {% if products %}
   <div class="table-responsive">
     <table class="table align-middle table-stack">
-      <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th class="text-center">Published</th><th class="text-center">Show price</th><th class="text-center">Featured</th><th class="text-end">Actions</th></tr></thead>
+      <thead><tr>{% sort_th "Product" "name" "name_desc" %}{% sort_th "Price" "price_asc" "price_desc" %}{% sort_th "Stock" "stock_asc" "stock_desc" %}<th class="text-center">Published</th><th class="text-center">Show price</th><th class="text-center">Featured</th><th class="text-end">Actions</th></tr></thead>
       <tbody>
         {% for product in products %}
           {% with image=product.primary_image %}

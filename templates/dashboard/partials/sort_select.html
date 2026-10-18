@@ -1,0 +1,4 @@
+<label class="visually-hidden" for="sort-select">Sort by</label>
+<select id="sort-select" name="sort" class="form-select w-auto" data-autosubmit aria-label="Sort by">
+  {% for key, label in sort_options.items %}<option value="{{ key }}" {% if key == sort %}selected{% endif %}>Sort: {{ label }}</option>{% endfor %}
+</select>

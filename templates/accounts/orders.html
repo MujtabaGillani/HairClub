@@ -12,7 +12,7 @@
         <tbody>
           {% for order in orders %}
             <tr>
-              <td class="ps-4 fw-semibold">{{ order.number }}</td>
+              <td class="ps-4 fw-semibold text-nowrap">{{ order.number }}{% include "partials/copy_button.html" with value=order.number label="order number" %}</td>
               <td>{{ order.created_at|date:"j M Y" }}</td>
               <td>{{ order.item_count }}</td>
               <td>{{ order.total|money }}</td>

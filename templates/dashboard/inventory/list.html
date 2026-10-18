@@ -1,5 +1,5 @@
 {% extends "dashboard/base.html" %}
-{% load core_tags %}
+{% load core_tags dashboard_tags %}
 {% block page_title %}Inventory{% endblock %}
 {% block heading %}Inventory management{% endblock %}
 {% block actions %}<a href="{% url 'dashboard:stock_history' %}" class="btn btn-outline-dark btn-sm"><i class="bi bi-clock-history me-1"></i><span class="d-none d-sm-inline">Stock history</span></a>{% endblock %}
@@ -26,6 +26,7 @@
         <option value="low" {% if request.GET.stock == "low" %}selected{% endif %}>Low stock</option>
         <option value="out" {% if request.GET.stock == "out" %}selected{% endif %}>Out of stock</option>
       </select>
+      {% include "dashboard/partials/sort_select.html" %}
       <button class="btn btn-outline-dark btn-sm" type="submit">Filter</button>
       {% if request.GET %}<a href="{% url 'dashboard:inventory' %}" class="small">Clear</a>{% endif %}
     </form>
@@ -33,7 +34,7 @@
   {% if products %}
   <div class="table-responsive">
     <table class="table align-middle table-stack">
-      <thead><tr><th>Product</th><th>SKU</th><th>In stock</th><th>Alert at</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <thead><tr>{% sort_th "Product" "name" "name_desc" %}{% sort_th "SKU" "sku" "sku" %}{% sort_th "In stock" "stock_asc" "stock_desc" %}<th>Alert at</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
       <tbody>
         {% for product in products %}
           <tr>

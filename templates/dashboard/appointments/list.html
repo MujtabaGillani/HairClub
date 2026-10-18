@@ -1,5 +1,5 @@
 {% extends "dashboard/base.html" %}
-{% load core_tags %}
+{% load core_tags dashboard_tags %}
 {% block page_title %}Appointments{% endblock %}
 {% block heading %}Appointment management{% endblock %}
 
@@ -24,7 +24,8 @@
       <select name="status" class="form-select w-auto" aria-label="Status" data-autosubmit>
         {% for value, label in filter_form.fields.status.choices %}<option value="{{ value }}" {% if filter_form.status.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
-      <input type="date" name="date" value="{{ filter_form.date.value|default:'' }}" class="form-control w-auto" aria-label="Date" data-autosubmit>
+      {% include "dashboard/partials/date_range.html" %}
+      {% include "dashboard/partials/sort_select.html" %}
       <button class="btn btn-outline-dark btn-sm" type="submit">Filter</button>
       {% if request.GET.q or request.GET.status or request.GET.date %}<a href="?view={{ current_view }}" class="small">Clear</a>{% endif %}
     </form>
@@ -32,7 +33,7 @@
   {% if appointments %}
   <div class="table-responsive">
     <table class="table align-middle table-stack">
-      <thead><tr><th>Date &amp; time</th><th>Client</th><th>Service</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <thead><tr>{% sort_th "Date & time" "date_asc" "date_desc" %}{% sort_th "Client" "client" "client_desc" %}{% sort_th "Service" "service" "service" %}{% sort_th "Status" "status" "status" %}<th class="text-end">Actions</th></tr></thead>
       <tbody>
         {% for appt in appointments %}
           <tr>

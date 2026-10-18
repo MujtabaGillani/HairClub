@@ -11,6 +11,7 @@ from apps.appointments.services import InvalidTransition, change_appointment_sta
 from apps.core.http import redirect_next
 
 from ..forms import AppointmentFilterForm, AppointmentStatusForm
+from ..sorting import DATE_PRESETS, SortableListMixin, resolve_date_range
 
 VIEWS = {
     "upcoming": "Upcoming",
@@ -21,10 +22,26 @@ VIEWS = {
 }
 
 
-class AppointmentListView(VendorRequiredMixin, ListView):
+class AppointmentListView(VendorRequiredMixin, SortableListMixin, ListView):
     template_name = "dashboard/appointments/list.html"
     context_object_name = "appointments"
     paginate_by = 20
+    sort_options = {
+        "date_asc": ("Soonest first", ["date", "time"]),
+        "date_desc": ("Latest first", ["-date", "-time"]),
+        "booked_desc": ("Recently booked", ["-created_at"]),
+        "client": ("Client A–Z", ["full_name"]),
+        "client_desc": ("Client Z–A", ["-full_name"]),
+        "service": ("Service A–Z", ["service__name", "date", "time"]),
+        "status": ("Status", ["status", "date", "time"]),
+    }
+    default_sort = "date_asc"
+
+    def get_sort_key(self) -> str:
+        key = self.request.GET.get("sort", "")
+        if key in self.sort_options:
+            return key
+        return "date_desc" if self.view in ("past", "all") else "date_asc"
 
     def get_queryset(self):
         self.view = self.request.GET.get("view") if self.request.GET.get("view") in VIEWS else "upcoming"
@@ -56,7 +73,12 @@ class AppointmentListView(VendorRequiredMixin, ListView):
                 qs = qs.filter(status=data["status"])
             if data.get("date"):
                 qs = qs.filter(date=data["date"])
-        return qs
+        self.date_from, self.date_to, self.date_preset = resolve_date_range(self.request.GET)
+        if self.date_from:
+            qs = qs.filter(date__gte=self.date_from)
+        if self.date_to:
+            qs = qs.filter(date__lte=self.date_to)
+        return self.apply_sort(qs)
 
     def get_context_data(self, **kwargs):
         today = timezone.localdate()
@@ -71,6 +93,10 @@ class AppointmentListView(VendorRequiredMixin, ListView):
             current_view=self.view,
             filter_form=self.filter_form,
             counts=counts,
+            date_from=self.date_from,
+            date_to=self.date_to,
+            date_preset=self.date_preset,
+            date_presets=DATE_PRESETS,
             **kwargs,
         )
 

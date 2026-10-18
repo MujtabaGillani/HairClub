@@ -1,98 +1,78 @@
-"""Server-side geometry for the monthly revenue-vs-costs column chart (rendered as inline SVG)."""
+"""
+Data preparation for the monthly revenue / costs / net-profit chart.
 
-import math
+The chart itself is drawn client-side (static/js/dashboard.js) at the container's
+real pixel width, so text stays crisp and bars keep their thin spec at any size.
+"""
+
 from decimal import Decimal
 
-WIDTH, HEIGHT = 720, 260
-PAD_LEFT, PAD_RIGHT, PAD_TOP, PAD_BOTTOM = 64, 8, 12, 28
-BAR_MAX = 18  # px, under the 24px cap so each month band keeps some air
-BAR_GAP = 2  # surface gap between the two columns of a month
-RADIUS = 4
+from .services import Delta
+
+MIN_MONTHS = 6
 
 
-def _nice_step(maximum: float, ticks: int = 4) -> float:
-    if maximum <= 0:
-        return 1.0
-    raw = maximum / ticks
-    magnitude = 10 ** math.floor(math.log10(raw))
-    for multiple in (1, 2, 2.5, 5, 10):
-        if raw <= multiple * magnitude:
-            return multiple * magnitude
-    return 10 * magnitude
+def apply_month_to_date(rows: list[dict], current: dict, previous_same_days: dict, label: str) -> None:
+    """
+    The latest month is usually only partly over. Comparing it with the whole of
+    last month would always look like a drop, so its change badges are recomputed
+    against the same days of last month (``previous_same_days``).
+    """
+    if not rows:
+        return
+    row = rows[-1]
+    row["revenue_delta"] = Delta(current["revenue"], previous_same_days["revenue"])
+    row["expenses_delta"] = Delta(current["expenses"], previous_same_days["expenses"], higher_is_better=False)
+    row["net_delta"] = Delta(current["net"], previous_same_days["net"])
+    row["compare_label"] = label
 
 
-def _column_path(x: float, base: float, top: float, width: float) -> str:
-    """Column with a 4px rounded data-end and a square baseline."""
-    height = base - top
-    if height <= 0:
-        return ""
-    r = min(RADIUS, height, width / 2)
-    return (
-        f"M{x:.1f},{base:.1f} V{top + r:.1f} Q{x:.1f},{top:.1f} {x + r:.1f},{top:.1f} "
-        f"H{x + width - r:.1f} Q{x + width:.1f},{top:.1f} {x + width:.1f},{top + r:.1f} V{base:.1f} Z"
-    )
-
-
-def compact(value: float) -> str:
-    value = float(value)
-    if abs(value) >= 1_000_000:
-        return f"{value / 1_000_000:.1f}M".replace(".0M", "M")
-    if abs(value) >= 1_000:
-        return f"{value / 1_000:.0f}K"
-    return f"{value:.0f}"
-
-
-def revenue_cost_chart(series: list[dict]) -> dict:
-    """Columns per month: revenue (series 1) next to total costs = COGS + expenses (series 2)."""
-    rows = [{**row, "costs": row["cogs"] + row["expenses"]} for row in series]
-    peak = max([float(r["revenue"]) for r in rows] + [float(r["costs"]) for r in rows] + [0.0])
-    step = _nice_step(peak)
-    top_value = max(step * math.ceil(peak / step), step)
-
-    plot_w = WIDTH - PAD_LEFT - PAD_RIGHT
-    plot_h = HEIGHT - PAD_TOP - PAD_BOTTOM
-    base = PAD_TOP + plot_h
-    band = plot_w / max(len(rows), 1)
-    bar = min(BAR_MAX, (band - 10 - BAR_GAP) / 2)
-
-    def y(value) -> float:
-        return base - float(value) / top_value * plot_h
-
-    ticks = []
-    value = 0.0
-    while value <= top_value + 1e-9:
-        ticks.append({"y": round(y(value), 1), "label": compact(value)})
-        value += step
-
-    months = []
-    for i, row in enumerate(rows):
-        center = PAD_LEFT + band * i + band / 2
-        x_rev = center - BAR_GAP / 2 - bar
-        x_cost = center + BAR_GAP / 2
-        months.append(
+def trend_chart_data(series: list[dict], min_months: int = MIN_MONTHS) -> dict:
+    """
+    Trim leading months with no activity (keeping at least ``min_months``) and
+    return JSON-safe rows plus totals for the summary strip.
+    """
+    rows = []
+    for i, row in enumerate(series):
+        prev = series[i - 1] if i else None
+        rows.append(
             {
                 **row,
-                "x": round(center, 1),
-                "band_x": round(PAD_LEFT + band * i, 1),
-                "band_w": round(band, 1),
-                "revenue_path": _column_path(x_rev, base, y(row["revenue"]), bar),
-                "costs_path": _column_path(x_cost, base, y(row["costs"]), bar),
+                "costs": row["cogs"] + row["expenses"],
+                # Change vs the previous month (None for the first month of the series).
+                "revenue_delta": Delta(row["revenue"], prev["revenue"]) if prev else None,
+                "expenses_delta": Delta(row["expenses"], prev["expenses"], higher_is_better=False) if prev else None,
+                "net_delta": Delta(row["net"], prev["net"]) if prev else None,
             }
         )
+    first_active = next((i for i, r in enumerate(rows) if r["revenue"] or r["costs"]), len(rows))
+    start = min(first_active, max(len(rows) - min_months, 0))
+    rows = rows[start:]
+
+    zero = Decimal("0")
+    totals = {
+        "revenue": sum((r["revenue"] for r in rows), zero),
+        "costs": sum((r["costs"] for r in rows), zero),
+        "net": sum((r["net"] for r in rows), zero),
+    }
+    totals["margin"] = (totals["net"] / totals["revenue"] * 100).quantize(Decimal("0.1")) if totals["revenue"] else None
 
     return {
-        "width": WIDTH,
-        "height": HEIGHT,
-        "base": round(base, 1),
-        "left": PAD_LEFT,
-        "right": WIDTH - PAD_RIGHT,
-        "label_y": HEIGHT - 8,
-        "ticks": ticks,
-        "months": months,
+        "rows": rows,
+        "totals": totals,
         "has_data": any(r["revenue"] or r["costs"] for r in rows),
-        "totals": {
-            "revenue": sum((r["revenue"] for r in rows), Decimal("0")),
-            "costs": sum((r["costs"] for r in rows), Decimal("0")),
-            "net": sum((r["net"] for r in rows), Decimal("0")),
-        },
+        "json": [
+            {
+                "label": f"{r['month']:%b %y}",
+                "title": f"{r['month']:%B %Y}",
+                "revenue": float(r["revenue"]),
+                "cogs": float(r["cogs"]),
+                "expenses": float(r["expenses"]),
+                "costs": float(r["costs"]),
+                "net": float(r["net"]),
+                "net_pct": float(r["net_delta"].pct) if r["net_delta"] and r["net_delta"].pct is not None else None,
+                "net_good": r["net_delta"].is_good if r["net_delta"] else None,
+            }
+            for r in rows
+        ],
     }

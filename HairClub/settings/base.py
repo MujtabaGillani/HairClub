@@ -74,6 +74,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "apps.accounts.middleware.BrowserSessionTimeoutMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
@@ -145,11 +146,12 @@ LOGOUT_REDIRECT_URL = "core:home"
 # django-allauth
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_FORMS = {"login": "apps.accounts.auth_forms.LoginForm"}
 ACCOUNT_SIGNUP_FORM_CLASS = "apps.accounts.forms.SignupExtraForm"
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = os.getenv("ACCOUNT_EMAIL_VERIFICATION", "optional")
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
-ACCOUNT_SESSION_REMEMBER = None
+ACCOUNT_SESSION_REMEMBER = None  # user chooses via the "Remember me" box
 ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_RATE_LIMITS = {"login_failed": "10/m/ip,5/5m/key"}
 SOCIALACCOUNT_LOGIN_ON_GET = True
@@ -214,6 +216,8 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Safa Hair <no-reply@safaha
 # ---------------------------------------------------------------------------
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # two weeks, keeps guest carts alive
 SESSION_SAVE_EVERY_REQUEST = False
+# Sign-ins without "Remember me" end after this much inactivity (see accounts.middleware).
+BROWSER_SESSION_IDLE_TIMEOUT = int(os.getenv("BROWSER_SESSION_IDLE_TIMEOUT", str(2 * 60 * 60)))
 
 MESSAGE_TAGS = {
     message_constants.DEBUG: "secondary",

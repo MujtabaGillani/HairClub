@@ -72,21 +72,24 @@
           <a href="{{ enquiry_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark btn-lg w-100 my-4"><i class="bi bi-bell me-2"></i>Ask about restock</a>
         {% endif %}
 
-        <div class="d-flex flex-wrap gap-2 mb-4">
+        <div class="product-actions mb-4">
           <form method="post" action="{% url 'wishlist:toggle' product.pk %}" data-wishlist-form>
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" class="btn btn-outline-dark wishlist-btn position-static w-auto h-auto px-3 rounded-pill shadow-none{% if product.pk in wishlist_ids %} is-active{% endif %}" aria-pressed="{% if product.pk in wishlist_ids %}true{% else %}false{% endif %}">
-              <i class="bi bi-heart me-1"></i> Favourite
+            <button type="submit" class="btn btn-outline-dark btn-favourite{% if product.pk in wishlist_ids %} is-active{% endif %}" aria-pressed="{% if product.pk in wishlist_ids %}true{% else %}false{% endif %}">
+              <i class="bi bi-heart" aria-hidden="true"></i><i class="bi bi-heart-fill" aria-hidden="true"></i>
+              <span class="when-off">Save to favourites</span><span class="when-on">Saved to favourites</span>
             </button>
           </form>
-          {% if product.show_price %}<a href="{{ enquiry_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark"><i class="bi bi-whatsapp me-1"></i> Ask a question</a>{% endif %}
+          {% if product.show_price %}<a href="{{ enquiry_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark"><i class="bi bi-whatsapp" aria-hidden="true"></i> Ask a question</a>{% endif %}
         </div>
 
-        <ul class="assurance-list hc-card hc-card-body mb-4">
+        <div class="hc-card hc-card-body mb-4">
+        <ul class="assurance-list">
           <li><i class="bi bi-truck"></i><div><strong>Nationwide delivery</strong><div class="small text-muted">{% if site_settings.free_shipping_threshold %}Free standard delivery on orders over {{ site_settings.free_shipping_threshold|money }}{% else %}Fast, tracked delivery{% endif %}</div></div></li>
           <li><i class="bi bi-cash-coin"></i><div><strong>Cash on delivery</strong><div class="small text-muted">Or pay by bank transfer</div></div></li>
           <li><i class="bi bi-scissors"></i><div><strong>Professional fitting available</strong><div class="small text-muted"><a href="{% url 'appointments:book' %}">Book a fitting appointment</a> at our studio</div></div></li>
         </ul>
+        </div>
 
         <div class="accordion" id="productInfo">
           <div class="accordion-item">

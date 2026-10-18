@@ -4,7 +4,9 @@ and orders so the site can be explored and QA'd immediately. Safe to run more
 than once: appointments and orders are only added when none exist yet.
 """
 
+import calendar
 import io
+import random
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -302,12 +304,13 @@ class Command(BaseCommand):
         orders = 0 if Order.objects.exists() else seed_orders()
         fill_finance_gaps()
         expenses = 0 if Expense.objects.exists() else seed_expenses()
+        history = seed_history()
 
         if options["verbosity"]:
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Demo data ready ({created} new products, {appointments} appointments, "
-                    f"{orders} orders, {expenses} expenses)."
+                    f"{orders} orders, {expenses} expenses; history: {history})."
                 )
             )
 
@@ -592,3 +595,202 @@ def seed_expenses() -> int:
         )
         count += 1
     return count
+
+
+# --- Six months of trading history (finance demo) -------------------------------
+
+HISTORY_MARKER = "Order placed (demo history)"
+HISTORY_MONTHS = 6
+EXTRA_CUSTOMERS = [
+    ("Adeel Akhtar", "0300 7712093"),
+    ("Waqas Ahmed", "0321 4459012"),
+    ("Shahzad Ali", "0333 9021877"),
+    ("Naveed Iqbal", "0345 2210984"),
+    ("Junaid Khan", "0301 6638201"),
+    ("Asad Mehmood", "0322 9917345"),
+    ("Talha Siddiqui", "0334 1176550"),
+    ("Omer Farooq", "0312 8846120"),
+    ("Rizwan Haider", "0306 4459981"),
+    ("Fahad Mustafa", "0315 2208764"),
+    ("Nabeel Raza", "0331 5532107"),
+    ("Haris Jamil", "0344 7781230"),
+]
+HAIR_SYSTEMS = ["Ultra-Thin Skin Hair Patch 0.03mm", "French Lace Hair System", "Mono Base Hair Patch"]
+SMALL_ITEMS = [
+    "Ultra Hold Liquid Adhesive 1.4oz",
+    "Lace Front Support Tape (72 pcs)",
+    "Sulfate-Free System Shampoo 300ml",
+    "Deep Moisture Conditioner 300ml",
+    "Matte Texture Clay 85g",
+    "Soft-Bristle System Brush",
+]
+# Completed services per month at full activity: (service, count)
+SERVICE_MIX = [
+    ("Non-Surgical Hair Replacement", 3),
+    ("Hair Patch Fitting", 2),
+    ("Maintenance & Re-bonding", 6),
+    ("Cut & Style", 4),
+    ("Scalp Treatment", 2),
+    ("Free Consultation", 4),
+]
+SLOT_TIMES = ["11:00", "12:30", "14:00", "15:30", "17:00", "18:30"]
+CITIES = ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad"]
+
+
+def _aware(day, hour, minute=0):
+    return timezone.make_aware(datetime.combine(day, datetime.min.time()) + timedelta(hours=hour, minutes=minute))
+
+
+def _month_starts(today, count):
+    """First day of each of the last ``count`` months, oldest first (current month last)."""
+    starts = [today.replace(day=1)]
+    for _ in range(count - 1):
+        starts.insert(0, (starts[0] - timedelta(days=1)).replace(day=1))
+    return starts
+
+
+def seed_history() -> str:
+    """
+    Six months of delivered orders, completed services and running costs so the
+    finance pages show a realistic, growing, profitable business. Runs once
+    (marked by HISTORY_MARKER). Each historical sale is preceded by a matching
+    restock, so current stock levels are unchanged and the ledger stays consistent.
+    """
+    if OrderEvent.objects.filter(note=HISTORY_MARKER).exists():
+        return "already present"
+
+    rng = random.Random(2026)  # noqa: S311 - deterministic demo data, not security
+    vendor = _demo_vendor()
+    today = timezone.localdate()
+    products = {p.name: p for p in Product.objects.filter(show_price=True)}
+    services = {s.name: s for s in Service.objects.all()}
+    categories = {c.name: c for c in ExpenseCategory.objects.all()}
+    people = [(c[0], c[1]) for c in CUSTOMERS] + EXTRA_CUSTOMERS
+    orders = appts = expenses = 0
+
+    for i, month_start in enumerate(_month_starts(today, HISTORY_MONTHS)):
+        days_in_month = calendar.monthrange(month_start.year, month_start.month)[1]
+        is_current = month_start == today.replace(day=1)
+        last_day = (today - month_start).days if is_current else days_in_month  # current month: up to yesterday
+        if last_day < 1:
+            continue
+        growth = 0.85 + 0.07 * i  # steady month-on-month growth
+        share = last_day / days_in_month  # the current month is only partly over
+
+        def random_day(month_start=month_start, last_day=last_day):
+            return month_start + timedelta(days=rng.randint(0, last_day - 1))
+
+        # Shop orders, all delivered within a few days.
+        for _ in range(round(10 * growth * share)):
+            lines = []
+            if rng.random() < 0.45 and (name := rng.choice(HAIR_SYSTEMS)) in products:
+                lines.append((products[name], 1))
+            for name in rng.sample(SMALL_ITEMS, rng.randint(1, 2)):
+                if name in products:
+                    lines.append((products[name], rng.randint(1, 3)))
+            if not lines:
+                continue
+            placed = _aware(random_day(), rng.randint(10, 20), rng.choice((0, 15, 30, 45)))
+            delivered = min(placed + timedelta(days=rng.randint(1, 3)), timezone.now() - timedelta(hours=2))
+            name, phone = rng.choice(people)
+            shipping = "pickup" if rng.random() < 0.15 else ("express" if rng.random() < 0.2 else "standard")
+            subtotal = sum((p.final_price * q for p, q in lines), Decimal("0"))
+            shipping_cost = calculate_shipping(subtotal, shipping)
+            pickup = shipping == "pickup"
+            order = Order.objects.create(
+                full_name=name,
+                email=f"{name.split()[0].lower()}{rng.randint(1, 99)}@example.com",
+                phone=phone,
+                address_line1="" if pickup else f"House {rng.randint(1, 250)}, Block {rng.choice('ABCDEFGH')}",
+                city="" if pickup else rng.choice(CITIES),
+                province="" if pickup else "Punjab",
+                shipping_method=shipping,
+                payment_method=rng.choice(["cod", "cod", "bank_transfer"]),
+                subtotal=subtotal,
+                shipping_cost=shipping_cost,
+                total=subtotal + shipping_cost,
+                status="delivered",
+                payment_status="paid",
+            )
+            for product, qty in lines:
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    product_name=product.name,
+                    sku=product.sku,
+                    unit_price=product.final_price,
+                    quantity=qty,
+                    line_total=product.final_price * qty,
+                    unit_cost=product.unit_cost,
+                )
+                restock = adjust_stock(product, qty, MovementReason.RESTOCK, note="Supplier delivery (demo history)")
+                sale = adjust_stock(product, -qty, MovementReason.SALE, reference=order.number)
+                StockMovement.objects.filter(pk=restock.pk).update(created_at=placed - timedelta(days=2))
+                StockMovement.objects.filter(pk=sale.pk).update(created_at=placed)
+            number = f"HC{timezone.localtime(placed):%y%m%d}-{order.number.split('-', 1)[1]}"
+            StockMovement.objects.filter(reference=order.number).update(reference=number)
+            Order.objects.filter(pk=order.pk).update(number=number, created_at=placed, delivered_at=delivered)
+            steps = [("pending", HISTORY_MARKER, placed), ("confirmed", "", placed + timedelta(hours=3))]
+            if not pickup:
+                steps.append(("shipped", "", placed + timedelta(hours=20)))
+            steps.append(("delivered", "", delivered))
+            for status, note, when in steps:
+                event = OrderEvent.objects.create(order=order, status=status, note=note, created_by=vendor)
+                OrderEvent.objects.filter(pk=event.pk).update(created_at=when)
+            orders += 1
+
+        # Completed salon services, plus the odd cancellation and no-show.
+        for service_name, count in SERVICE_MIX:
+            service = services.get(service_name)
+            if service is None:
+                continue
+            for _ in range(round(count * growth * share)):
+                day = random_day()
+                name, phone = rng.choice(people)
+                appt = Appointment.objects.create(
+                    full_name=name,
+                    phone=phone,
+                    service=service,
+                    date=day,
+                    time=datetime.strptime(rng.choice(SLOT_TIMES), "%H:%M").time(),
+                    status="completed",
+                    amount_charged=service.starting_price or Decimal("0"),
+                    handled_by=vendor,
+                    status_changed_at=_aware(day, 20),
+                )
+                Appointment.objects.filter(pk=appt.pk).update(created_at=_aware(day - timedelta(days=4), 12))
+                appts += 1
+        if "Free Consultation" in services:
+            for status in ("cancelled", "no_show"):
+                day = random_day()
+                name, phone = rng.choice(people)
+                appt = Appointment.objects.create(
+                    full_name=name,
+                    phone=phone,
+                    service=services["Free Consultation"],
+                    date=day,
+                    time=datetime.strptime("16:00", "%H:%M").time(),
+                    status=status,
+                    handled_by=vendor,
+                )
+                Appointment.objects.filter(pk=appt.pk).update(created_at=_aware(day - timedelta(days=3), 11))
+                appts += 1
+
+        # Running costs, only for months that have none recorded yet.
+        if not Expense.objects.filter(date__year=month_start.year, date__month=month_start.month).exists():
+            for day, category, description, paid_to, amount, method in MONTHLY_EXPENSES:
+                if day > last_day or category not in categories:
+                    continue
+                when = month_start.replace(day=day)
+                Expense.objects.create(
+                    date=when,
+                    category=categories[category],
+                    amount=Decimal(amount),
+                    description=f"{description} – {when:%B}",
+                    paid_to=paid_to,
+                    payment_method=method,
+                    created_by=vendor,
+                )
+                expenses += 1
+
+    return f"{orders} orders, {appts} appointments, {expenses} expenses"

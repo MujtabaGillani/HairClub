@@ -118,7 +118,7 @@
         return;
       }
       if (!response.ok) throw new Error();
-      $$(`[data-wishlist-form][action="${form.getAttribute("action")}"] .wishlist-btn`).forEach((btn) => {
+      $$(`[data-wishlist-form][action="${form.getAttribute("action")}"] :is(.wishlist-btn, .btn-favourite)`).forEach((btn) => {
         btn.classList.toggle("is-active", data.in_wishlist);
         btn.setAttribute("aria-pressed", data.in_wishlist ? "true" : "false");
       });
@@ -251,6 +251,39 @@
       $("[data-forward-note]")?.remove();
     });
   }
+
+  /* ---------- Copy to clipboard (order numbers, references) ---------- */
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    // Fallback for plain-HTTP pages (e.g. testing on a LAN IP).
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    area.remove();
+    if (!ok) throw new Error("copy failed");
+  }
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await copyText(btn.dataset.copy);
+      btn.classList.add("is-copied");
+      showToast(`Copied ${btn.dataset.copy}`);
+      setTimeout(() => btn.classList.remove("is-copied"), 1600);
+    } catch (_) {
+      showToast("Couldn't copy. Please select the text and copy it manually.", true);
+    }
+  });
 
   /* ---------- Confirm destructive actions ---------- */
   document.addEventListener("submit", (e) => {

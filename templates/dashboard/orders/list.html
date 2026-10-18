@@ -1,32 +1,51 @@
 {% extends "dashboard/base.html" %}
-{% load core_tags %}
+{% load core_tags dashboard_tags %}
 {% block page_title %}Orders{% endblock %}
 {% block heading %}Orders{% endblock %}
 
 {% block dashboard_content %}
 <nav class="tabs-pills mb-3" aria-label="Order status">
-  <a href="{% url 'dashboard:order_list' %}" class="{% if not request.GET.status %}active{% endif %}">All</a>
-  {% for value, label, count in status_counts %}<a href="?status={{ value }}" class="{% if request.GET.status == value %}active{% endif %}">{{ label }}<span class="count">{{ count }}</span></a>{% endfor %}
+  <a href="?{{ tab_query }}" class="{% if not request.GET.status %}active{% endif %}">All<span class="count">{{ status_total }}</span></a>
+  {% for value, label, count in status_counts %}<a href="?{% if tab_query %}{{ tab_query }}&amp;{% endif %}status={{ value }}" class="{% if request.GET.status == value %}active{% endif %}">{{ label }}<span class="count">{{ count }}</span></a>{% endfor %}
 </nav>
 
 <div class="panel">
-  <div class="panel-header">
-    <form method="get" class="filter-bar flex-grow-1" role="search">
-      {% if request.GET.status %}<input type="hidden" name="status" value="{{ request.GET.status }}">{% endif %}
+  <form method="get" class="panel-header filter-panel-form" role="search" aria-label="Filter orders">
+    {% if request.GET.status %}<input type="hidden" name="status" value="{{ request.GET.status }}">{% endif %}
+    <div class="filter-bar flex-grow-1">
       <input type="search" name="q" value="{{ request.GET.q }}" class="form-control search-input" placeholder="Order #, name, email or phone…" aria-label="Search orders">
-      <button class="btn btn-outline-dark btn-sm" type="submit">Search</button>
-      {% if request.GET.q %}<a href="?{% querystring q=None page=None %}" class="small">Clear</a>{% endif %}
-    </form>
-    <span class="text-muted small">{{ paginator.count }} order{{ paginator.count|pluralize }}</span>
-  </div>
+      {% include "dashboard/partials/date_range.html" %}
+      <select name="payment_status" class="form-select w-auto" aria-label="Payment status" data-autosubmit>
+        {% for value, label in filter_form.fields.payment_status.choices %}<option value="{{ value }}" {% if request.GET.payment_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <select name="payment_method" class="form-select w-auto" aria-label="Payment method" data-autosubmit>
+        {% for value, label in filter_form.fields.payment_method.choices %}<option value="{{ value }}" {% if request.GET.payment_method == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      {% include "dashboard/partials/sort_select.html" %}
+      <button class="btn btn-outline-dark btn-sm" type="submit">Apply</button>
+      {% if has_filters %}<a href="{% url 'dashboard:order_list' %}" class="small">Clear all</a>{% endif %}
+    </div>
+    <div class="filter-summary small text-muted" aria-live="polite">
+      <strong class="text-body">{{ paginator.count }}</strong> order{{ paginator.count|pluralize }} · <strong class="text-body">{{ filtered_value|money }}</strong>
+      {% if date_from or date_to %}<span class="d-block d-sm-inline">· {% if date_from %}{{ date_from|date:"j M Y" }}{% else %}start{% endif %} – {% if date_to %}{{ date_to|date:"j M Y" }}{% else %}today{% endif %}</span>{% endif %}
+    </div>
+  </form>
   {% if orders %}
   <div class="table-responsive">
     <table class="table align-middle table-stack">
-      <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr></thead>
+      <thead><tr>
+        {% sort_th "Order" "oldest" "newest" %}
+        {% sort_th "Customer" "customer" "customer_desc" %}
+        {% sort_th "Items" "items_asc" "items_desc" %}
+        {% sort_th "Total" "total_asc" "total_desc" %}
+        <th scope="col">Payment</th>
+        {% sort_th "Status" "status" "status_desc" %}
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr></thead>
       <tbody>
         {% for order in orders %}
           <tr>
-            <td data-main><a href="{% url 'dashboard:order_detail' order.number %}" class="fw-semibold">{{ order.number }}</a><div class="small text-muted">{{ order.created_at|date:"j M Y, g:i A" }}</div></td>
+            <td data-main><a href="{% url 'dashboard:order_detail' order.number %}" class="fw-semibold">{{ order.number }}</a>{% include "partials/copy_button.html" with value=order.number label="order number" %}<div class="small text-muted">{{ order.created_at|date:"j M Y, g:i A" }}</div></td>
             <td data-label="Customer">{{ order.full_name }}<div class="small text-muted">{{ order.phone }}{% if not order.user_id %} · guest{% endif %}</div></td>
             <td data-label="Items">{{ order.units|default:0 }}</td>
             <td data-label="Total" class="fw-semibold text-nowrap">{{ order.total|money }}</td>
@@ -39,7 +58,7 @@
     </table>
   </div>
   {% else %}
-    <div class="empty-state"><div class="empty-icon"><i class="bi bi-receipt"></i></div><h2 class="h5">No orders found</h2></div>
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-receipt"></i></div><h2 class="h5">No orders found</h2>{% if has_filters %}<p class="text-muted mb-3">Try a wider date range or clear the filters.</p><a href="{% url 'dashboard:order_list' %}" class="btn btn-outline-dark btn-sm">Clear all filters</a>{% endif %}</div>
   {% endif %}
 </div>
 {% include "partials/pagination.html" %}

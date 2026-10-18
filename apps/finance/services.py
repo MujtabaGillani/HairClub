@@ -65,6 +65,87 @@ def _add_months(d: date, months: int) -> date:
     return date(d.year + month_index // 12, month_index % 12 + 1, 1)
 
 
+def _last_day_of_month(d: date) -> date:
+    return _add_months(_month_start(d), 1) - timedelta(days=1)
+
+
+def previous_period(period: Period) -> tuple[Period, str]:
+    """
+    The period to compare against, and a short label for it. Month-to-date is
+    compared with the same days of last month (not the whole month), so a
+    half-finished month isn't judged against a complete one.
+    """
+    start, end = period.start, period.end
+    if period.key == "this_month":
+        prev_start = _add_months(start, -1)
+        prev_end = min(prev_start + (end - start), _last_day_of_month(prev_start))
+        label = f"{prev_start.day}–{prev_end.day} {prev_start:%b}"  # e.g. "1–18 Sep"
+    elif period.key == "last_month":
+        prev_start = _add_months(start, -1)
+        prev_end = start - timedelta(days=1)
+        label = f"{prev_start:%B}"
+    elif period.key == "this_quarter":
+        prev_start = _add_months(start, -3)
+        prev_end = min(prev_start + (end - start), _add_months(prev_start, 3) - timedelta(days=1))
+        label = "same days last quarter"
+    elif period.key == "this_year":
+        prev_start = start.replace(year=start.year - 1)
+        prev_end = min(prev_start + (end - start), date(prev_start.year, 12, 31))
+        label = f"same period {prev_start.year}"
+    elif period.key == "last_12_months":
+        prev_start = _add_months(start, -12)
+        prev_end = start - timedelta(days=1)
+        label = "previous 12 months"
+    else:
+        length = end - start
+        prev_end = start - timedelta(days=1)
+        prev_start = prev_end - length
+        label = "previous period"
+    return Period("custom", prev_start, prev_end), label
+
+
+@dataclass(frozen=True)
+class Delta:
+    """Change between two amounts. ``higher_is_better`` is False for costs."""
+
+    current: Decimal
+    previous: Decimal
+    higher_is_better: bool = True
+
+    @property
+    def pct(self) -> Decimal | None:
+        if not self.previous:
+            return None
+        return ((self.current - self.previous) / abs(self.previous) * 100).quantize(Decimal("0.1"))
+
+    @property
+    def direction(self) -> str:
+        if self.current > self.previous:
+            return "up"
+        if self.current < self.previous:
+            return "down"
+        return "flat"
+
+    @property
+    def is_good(self) -> bool | None:
+        if self.direction == "flat":
+            return None
+        return (self.direction == "up") == self.higher_is_better
+
+    @property
+    def pct_abs(self) -> Decimal | None:
+        return abs(self.pct) if self.pct is not None else None
+
+
+def compare_reports(current: "Report", previous: "Report") -> dict[str, Delta]:
+    return {
+        "revenue": Delta(current.revenue, previous.revenue),
+        "gross_profit": Delta(current.gross_profit, previous.gross_profit),
+        "expenses": Delta(current.expenses_total, previous.expenses_total, higher_is_better=False),
+        "net_profit": Delta(current.net_profit, previous.net_profit),
+    }
+
+
 def resolve_period(key: str | None, start: date | None = None, end: date | None = None) -> Period:
     today = timezone.localdate()
     key = key if key in PERIOD_CHOICES else "this_month"

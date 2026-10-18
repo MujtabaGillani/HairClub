@@ -13,11 +13,24 @@ from apps.inventory.models import MovementReason
 from apps.inventory.services import adjust_stock
 
 from ..forms import ProductForm
+from ..sorting import SortableListMixin
 
 TOGGLEABLE_FIELDS = {"is_active": "Published", "show_price": "Price visibility", "is_featured": "Featured"}
 
 
-class ProductListView(VendorRequiredMixin, ListView):
+class ProductListView(VendorRequiredMixin, SortableListMixin, ListView):
+    sort_options = {
+        "newest": ("Newest first", ["-created_at"]),
+        "oldest": ("Oldest first", ["created_at"]),
+        "name": ("Name A–Z", ["name"]),
+        "name_desc": ("Name Z–A", ["-name"]),
+        "price_desc": ("Price: high to low", ["-price"]),
+        "price_asc": ("Price: low to high", ["price"]),
+        "stock_asc": ("Stock: low to high", ["stock", "name"]),
+        "stock_desc": ("Stock: high to low", ["-stock", "name"]),
+    }
+    default_sort = "newest"
+
     template_name = "dashboard/products/list.html"
     context_object_name = "products"
     paginate_by = 15
@@ -36,7 +49,7 @@ class ProductListView(VendorRequiredMixin, ListView):
             qs = qs.filter(show_price=False)
         elif status == "on_sale":
             qs = qs.filter(discount_percent__gt=0)
-        return qs.order_by("-created_at")
+        return self.apply_sort(qs)
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(nav="products", categories=Category.objects.all(), **kwargs)

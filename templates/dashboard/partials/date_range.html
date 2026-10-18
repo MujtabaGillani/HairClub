@@ -1,0 +1,10 @@
+{% comment %}Date-range filter: preset chips + custom from/to. Expects date_from, date_to, date_preset, date_presets in context; lives inside a GET form.{% endcomment %}
+<div class="date-range">
+  <select name="range" class="form-select w-auto" aria-label="Date range" data-date-preset data-autosubmit>
+    <option value="">{% if date_from or date_to %}Custom dates{% else %}Any date{% endif %}</option>
+    {% for key, label in date_presets.items %}<option value="{{ key }}" {% if date_preset == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <input type="date" name="from" class="form-control w-auto" value="{% if not date_preset %}{{ date_from|date:'Y-m-d' }}{% endif %}" aria-label="From date" data-date-custom>
+  <span class="text-muted small">to</span>
+  <input type="date" name="to" class="form-control w-auto" value="{% if not date_preset %}{{ date_to|date:'Y-m-d' }}{% endif %}" aria-label="To date" data-date-custom>
+</div>

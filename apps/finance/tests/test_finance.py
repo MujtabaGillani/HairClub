@@ -9,7 +9,7 @@ from apps.appointments.models import Appointment, AppointmentStatus
 from apps.appointments.services import InvalidTransition as AppointmentTransitionError
 from apps.appointments.services import change_appointment_status
 from apps.core.testing import make_product, make_service, make_user, make_vendor
-from apps.finance.charts import revenue_cost_chart
+from apps.finance.charts import trend_chart_data
 from apps.finance.models import Expense, ExpenseCategory
 from apps.finance.services import Period, build_report, monthly_trend, resolve_period
 from apps.orders.models import Order, OrderItem, OrderStatus
@@ -177,9 +177,22 @@ class ReportTests(TestCase):
         self.assertEqual(len(trend), 3)
         self.assertEqual(trend[-1]["revenue"], D("2250"))
         self.assertEqual(trend[-1]["net"], D("2250") - D("800") - D("1000"))
-        chart = revenue_cost_chart(trend)
+        chart = trend_chart_data(trend, min_months=2)
         self.assertTrue(chart["has_data"])
-        self.assertTrue(chart["months"][-1]["revenue_path"].startswith("M"))
+        self.assertEqual(len(chart["rows"]), 2)  # leading empty month trimmed, minimum kept
+        self.assertEqual(chart["json"][-1]["net"], 450.0)
+        self.assertEqual(chart["totals"]["revenue"], D("2250"))
+
+    def test_chart_trims_only_leading_empty_months(self):
+        empty = {"revenue": D("0"), "cogs": D("0"), "expenses": D("0"), "net": D("0")}
+        busy = {"revenue": D("100"), "cogs": D("10"), "expenses": D("0"), "net": D("90")}
+        months = [date(2026, m, 1) for m in range(1, 11)]
+        series = [{**(busy if m.month in (5, 8) else empty), "month": m} for m in months]
+        chart = trend_chart_data(series, min_months=3)
+        self.assertEqual([r["month"].month for r in chart["rows"]], [5, 6, 7, 8, 9, 10])  # gap months kept
+        quiet = trend_chart_data([{**empty, "month": m} for m in months], min_months=3)
+        self.assertEqual(len(quiet["rows"]), 3)
+        self.assertFalse(quiet["has_data"])
 
 
 class AppointmentIncomeTests(TestCase):
@@ -289,3 +302,50 @@ class FinanceDashboardTests(TestCase):
             },
         )
         self.assertIn("amount", response.context["form"].errors)
+
+
+class ComparisonTests(TestCase):
+    def test_previous_periods(self):
+        from apps.finance.services import previous_period
+
+        month_to_date = Period("this_month", date(2026, 10, 1), date(2026, 10, 18))
+        prev, label = previous_period(month_to_date)
+        self.assertEqual((prev.start, prev.end), (date(2026, 9, 1), date(2026, 9, 18)))
+        self.assertIn("Sep", label)
+        # Month-to-date on the 31st compares against a 30-day month without overflowing.
+        prev, _ = previous_period(Period("this_month", date(2026, 10, 1), date(2026, 10, 31)))
+        self.assertEqual(prev.end, date(2026, 9, 30))
+        prev, label = previous_period(Period("last_month", date(2026, 9, 1), date(2026, 9, 30)))
+        self.assertEqual((prev.start, prev.end, label), (date(2026, 8, 1), date(2026, 8, 31), "August"))
+        prev, _ = previous_period(Period("custom", date(2026, 3, 10), date(2026, 3, 19)))
+        self.assertEqual((prev.start, prev.end), (date(2026, 2, 28), date(2026, 3, 9)))
+
+    def test_delta_direction_and_colour(self):
+        from apps.finance.services import Delta
+
+        up = Delta(D("150"), D("100"))
+        self.assertEqual((up.pct, up.direction, up.is_good), (D("50.0"), "up", True))
+        costs_up = Delta(D("150"), D("100"), higher_is_better=False)
+        self.assertFalse(costs_up.is_good)  # rising costs are bad -> red
+        down = Delta(D("80"), D("100"))
+        self.assertEqual((down.pct_abs, down.is_good), (D("20.0"), False))
+        loss_to_profit = Delta(D("50"), D("-100"))
+        self.assertEqual((loss_to_profit.pct, loss_to_profit.is_good), (D("150.0"), True))
+        self.assertIsNone(Delta(D("10"), D("0")).pct)  # shown as "New"
+        self.assertIsNone(Delta(D("5"), D("5")).is_good)
+
+    def test_monthly_rows_carry_changes_and_page_renders_badges(self):
+        today = timezone.localdate()
+        rent = ExpenseCategory.objects.get(name="Rent")
+        Expense.objects.create(date=today, category=rent, amount=D("1000"), description="Now")
+        last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=10)
+        Expense.objects.create(date=last_month, category=rent, amount=D("500"), description="Before")
+        chart = trend_chart_data(monthly_trend(3), min_months=2)
+        self.assertEqual(chart["rows"][-1]["expenses_delta"].pct, D("100.0"))
+        self.assertFalse(chart["rows"][-1]["expenses_delta"].is_good)
+
+        self.client.force_login(make_vendor())
+        response = self.client.get(reverse("dashboard:finance"), {"period": "last_12_months"})
+        self.assertContains(response, "Month by month")
+        self.assertContains(response, 'class="delta is-bad"')
+        self.assertIn("deltas", response.context)
