@@ -1,0 +1,107 @@
+{% load core_tags %}<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Invoice {{ invoice.number }}</title>
+<style>
+  @page { size: a4 portrait; margin: 16mm 15mm 18mm 15mm;
+    @frame footer { -pdf-frame-content: page-footer; bottom: 8mm; margin-left: 15mm; margin-right: 15mm; height: 12mm; } }
+  body { font-family: Helvetica; font-size: 9pt; color: #1b1a1f; line-height: 1.35; }
+  .rule { border-top: 2pt solid #c4a27a; margin-bottom: 10pt; }
+  .brand { font-size: 18pt; font-weight: bold; color: #1b1a1f; }
+  .tagline { font-size: 7pt; color: #8a6a3b; letter-spacing: 1pt; text-transform: uppercase; }
+  .title { font-size: 20pt; font-weight: bold; color: #b08d57; text-align: right; }
+  .meta td { font-size: 8pt; padding: 0; }
+  .meta .k { color: #6b6570; text-align: right; padding-right: 6pt; }
+  .meta .v { text-align: right; font-weight: bold; }
+  .label { font-size: 7pt; color: #8a6a3b; text-transform: uppercase; letter-spacing: 1pt; padding-bottom: 3pt; border-bottom: 0.5pt solid #ece4d9; margin-bottom: 4pt; }
+  .party { font-size: 10pt; font-weight: bold; }
+  .muted { color: #6b6570; }
+  table.items { width: 100%; margin-top: 14pt; }
+  table.items th { background-color: #1b1a1f; color: #ffffff; font-size: 8pt; padding: 5pt 6pt 4pt 6pt; text-align: left; }
+  table.items td { padding: 6pt 6pt 5pt 6pt; border-bottom: 0.5pt solid #ece4d9; }
+  .num { text-align: right; }
+  table.totals td { padding: 3pt 0 3pt 0; border-bottom: 0.5pt solid #ece4d9; }
+  .total-row td { background-color: #f4ebdf; font-weight: bold; font-size: 10pt; padding: 5pt 4pt 4pt 4pt; }
+  .balance td { font-weight: bold; color: #8a6a3b; }
+  .stamp { font-size: 22pt; font-weight: bold; text-align: right; }
+  .stamp.paid { color: #2f7d5b; } .stamp.void { color: #b3403a; }
+  .notes p { margin: 0 0 6pt 0; }
+  #page-footer { font-size: 7.5pt; color: #6b6570; border-top: 0.5pt solid #ece4d9; padding-top: 4pt; }
+</style>
+</head>
+<body>
+  <div class="rule"></div>
+  <table>
+    <tr>
+      <td width="55%" valign="top">
+        <div class="brand">{{ site.business_name }}</div>
+        <div class="tagline">{{ site.tagline }}</div>
+      </td>
+      <td width="45%" valign="top">
+        <div class="title">INVOICE</div>
+        {% if invoice.status == "void" %}<div class="stamp void">VOID</div>{% elif invoice.payment_state == "paid" %}<div class="stamp paid">PAID</div>{% endif %}
+        <table class="meta">
+          <tr><td class="k">Invoice no.</td><td class="v">{{ invoice.number }}</td></tr>
+          <tr><td class="k">Invoice date</td><td class="v">{{ invoice.invoice_date|date:"j M Y" }}</td></tr>
+          {% if invoice.due_date %}<tr><td class="k">Due date</td><td class="v">{{ invoice.due_date|date:"j M Y" }}</td></tr>{% endif %}
+          {% if invoice.delivery_date %}<tr><td class="k">Delivery / service</td><td class="v">{{ invoice.delivery_date|date:"j M Y" }}</td></tr>{% endif %}
+          {% if invoice.reference %}<tr><td class="k">Reference</td><td class="v">{{ invoice.reference }}</td></tr>{% endif %}
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <table style="margin-top: 16pt;">
+    <tr>
+      <td width="48%" valign="top">
+        <div class="label">Bill to</div>
+        <div class="party">{{ invoice.customer_name }}</div>
+        {% if invoice.billing_address %}<div>{{ invoice.billing_address|linebreaksbr }}</div>{% endif %}
+        {% if invoice.phone %}<div class="muted">{{ invoice.phone }}</div>{% endif %}
+        {% if invoice.email %}<div class="muted">{{ invoice.email }}</div>{% endif %}
+      </td>
+      <td width="4%"></td>
+      <td width="48%" valign="top">
+        {% if invoice.shipping_address %}<div class="label">Ship to</div><div>{{ invoice.shipping_address|linebreaksbr }}</div>{% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <table class="items" repeat="1">
+    <tr><th width="9%">QTY</th><th width="51%">DESCRIPTION</th><th width="20%" align="right">UNIT PRICE</th><th width="20%" align="right">AMOUNT</th></tr>
+    {% for item in items %}
+      <tr><td>{{ item.quantity_display }}</td><td>{{ item.description }}</td><td class="num">{{ item.unit_price|money|pdf_text }}</td><td class="num">{{ item.line_total|money|pdf_text }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <table style="margin-top: 14pt;">
+    <tr>
+      <td width="55%" valign="top" class="notes">
+        {% if invoice.notes %}<div class="label">Notes</div><p>{{ invoice.notes|linebreaksbr }}</p>{% endif %}
+        {% if invoice.payment_terms %}<div class="label">Payment terms</div><p>{{ invoice.payment_terms|linebreaksbr }}</p>{% endif %}
+        {% if invoice.payment_method %}<div class="label">Payment method</div><p>{{ invoice.get_payment_method_display }}</p>{% endif %}
+      </td>
+      <td width="5%"></td>
+      <td width="40%" valign="top">
+        <table class="totals">
+          <tr><td>Subtotal</td><td class="num">{{ invoice.subtotal|money|pdf_text }}</td></tr>
+          {% if invoice.discount_amount %}<tr><td>Discount</td><td class="num">- {{ invoice.discount_amount|money|pdf_text }}</td></tr>{% endif %}
+          {% if invoice.delivery_charge %}<tr><td>Delivery charge</td><td class="num">{{ invoice.delivery_charge|money|pdf_text }}</td></tr>{% endif %}
+          {% if invoice.tax_amount %}<tr><td>Tax ({{ invoice.tax_percent|floatformat:"-2" }}%)</td><td class="num">{{ invoice.tax_amount|money|pdf_text }}</td></tr>{% endif %}
+          <tr class="total-row"><td>Total</td><td class="num">{{ invoice.total|money|pdf_text }}</td></tr>
+          {% if invoice.amount_paid %}<tr><td>Paid</td><td class="num">{{ invoice.amount_paid|money|pdf_text }}</td></tr>{% endif %}
+          <tr class="balance"><td>Balance due</td><td class="num">{{ invoice.balance_due|money|pdf_text }}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <div id="page-footer">
+    <table><tr>
+      <td>{{ site.address }} · {{ site.phone }} · {{ site.email }}</td>
+      <td class="num">Page <pdf:pagenumber> of <pdf:pagecount></td>
+    </tr></table>
+  </div>
+</body>
+</html>

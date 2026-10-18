@@ -1,0 +1,80 @@
+{% load core_tags %}{% comment %}
+  The invoice as shown on screen: live preview (editor), detail page and the customer's public page.
+  data-bind / data-total / data-items hooks are used by the editor's live preview script.
+{% endcomment %}
+<article class="invoice-doc{% if invoice.status == 'void' %} is-void{% elif invoice.payment_state == 'paid' %} is-paid{% endif %}" data-invoice-doc aria-label="Invoice {{ invoice.number }}">
+  {% if invoice.status == "void" %}<div class="invoice-stamp void">Void</div>{% elif invoice.payment_state == "paid" %}<div class="invoice-stamp paid">Paid</div>{% endif %}
+  <div class="invoice-rule"></div>
+  <header class="invoice-head">
+    <div>
+      <div class="invoice-brand">{{ site.business_name }}</div>
+      <div class="invoice-tagline">{{ site.tagline }}</div>
+    </div>
+    <div class="invoice-title-block">
+      <div class="invoice-title">Invoice</div>
+      <dl class="invoice-meta">
+        <div><dt>Invoice no.</dt><dd data-bind="number">{{ invoice.number|default:"—" }}</dd></div>
+        <div><dt>Invoice date</dt><dd data-bind="invoice_date" data-format="date">{{ invoice.invoice_date|date:"j M Y"|default:"—" }}</dd></div>
+        <div data-hide-empty="due_date"{% if not invoice.due_date %} hidden{% endif %}><dt>Due date</dt><dd data-bind="due_date" data-format="date">{{ invoice.due_date|date:"j M Y" }}</dd></div>
+        <div data-hide-empty="delivery_date"{% if not invoice.delivery_date %} hidden{% endif %}><dt>Delivery / service</dt><dd data-bind="delivery_date" data-format="date">{{ invoice.delivery_date|date:"j M Y" }}</dd></div>
+        <div data-hide-empty="reference"{% if not invoice.reference %} hidden{% endif %}><dt>Reference</dt><dd data-bind="reference">{{ invoice.reference }}</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <section class="invoice-parties">
+    <div>
+      <div class="invoice-label">Bill to</div>
+      <div class="invoice-party-name" data-bind="customer_name">{{ invoice.customer_name|default:"Customer name" }}</div>
+      <div class="invoice-party-line" data-bind="billing_address" data-format="multiline">{{ invoice.billing_address|linebreaksbr }}</div>
+      <div class="invoice-party-line" data-bind="phone">{{ invoice.phone }}</div>
+      <div class="invoice-party-line" data-bind="email">{{ invoice.email }}</div>
+    </div>
+    <div data-hide-empty="shipping_address"{% if not invoice.shipping_address %} hidden{% endif %}>
+      <div class="invoice-label">Ship to</div>
+      <div class="invoice-party-line" data-bind="shipping_address" data-format="multiline">{{ invoice.shipping_address|linebreaksbr }}</div>
+    </div>
+  </section>
+
+  <table class="invoice-items">
+    <thead><tr><th class="qty">Qty</th><th>Description</th><th class="num">Unit price</th><th class="num">Amount</th></tr></thead>
+    <tbody data-items>
+      {% for item in items %}
+        <tr><td class="qty">{{ item.quantity_display }}</td><td>{{ item.description }}</td><td class="num">{{ item.unit_price|money }}</td><td class="num">{{ item.line_total|money }}</td></tr>
+      {% empty %}
+        <tr class="is-placeholder"><td class="qty">1</td><td>—</td><td class="num">{{ 0|money }}</td><td class="num">{{ 0|money }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <section class="invoice-bottom">
+    <div class="invoice-notes">
+      <div data-hide-empty="notes"{% if not invoice.notes %} hidden{% endif %}>
+        <div class="invoice-label">Notes</div>
+        <p data-bind="notes" data-format="multiline">{{ invoice.notes|linebreaksbr }}</p>
+      </div>
+      <div data-hide-empty="payment_terms"{% if not invoice.payment_terms %} hidden{% endif %}>
+        <div class="invoice-label">Payment terms</div>
+        <p data-bind="payment_terms" data-format="multiline">{{ invoice.payment_terms|linebreaksbr }}</p>
+      </div>
+      <div data-hide-empty="payment_method"{% if not invoice.payment_method %} hidden{% endif %}>
+        <div class="invoice-label">Payment method</div>
+        <p data-bind="payment_method" data-format="choice">{{ invoice.get_payment_method_display }}</p>
+      </div>
+    </div>
+    <table class="invoice-totals">
+      <tr><td>Subtotal</td><td class="num" data-total="subtotal">{{ invoice.subtotal|money }}</td></tr>
+      <tr data-hide-zero="discount"{% if not invoice.discount_amount %} hidden{% endif %}><td>Discount</td><td class="num" data-total="discount">− {{ invoice.discount_amount|money }}</td></tr>
+      <tr data-hide-zero="delivery"{% if not invoice.delivery_charge %} hidden{% endif %}><td>Delivery charge</td><td class="num" data-total="delivery">{{ invoice.delivery_charge|money }}</td></tr>
+      <tr data-hide-zero="tax"{% if not invoice.tax_amount %} hidden{% endif %}><td>Tax (<span data-bind="tax_percent">{{ invoice.tax_percent|floatformat:"-2" }}</span>%)</td><td class="num" data-total="tax">{{ invoice.tax_amount|money }}</td></tr>
+      <tr class="is-total"><td>Total</td><td class="num" data-total="total">{{ invoice.total|money }}</td></tr>
+      <tr data-hide-zero="paid"{% if not invoice.amount_paid %} hidden{% endif %}><td>Paid</td><td class="num" data-total="paid">{{ invoice.amount_paid|money }}</td></tr>
+      <tr class="is-balance"><td>Balance due</td><td class="num" data-total="balance">{{ invoice.balance_due|money }}</td></tr>
+    </table>
+  </section>
+
+  <footer class="invoice-foot">
+    <div>{{ site.address }}<br>{{ site.phone }} · {{ site.email }}</div>
+    <div>WhatsApp +{{ site.whatsapp_number }}</div>
+  </footer>
+</article>

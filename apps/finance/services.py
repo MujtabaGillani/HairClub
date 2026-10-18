@@ -20,6 +20,7 @@ from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 
 from apps.appointments.models import Appointment, AppointmentStatus
+from apps.invoices.models import Invoice
 from apps.orders.models import Order, OrderItem, OrderStatus
 
 from .models import Expense
@@ -185,6 +186,8 @@ class Report:
     product_sales: Decimal = ZERO
     shipping_income: Decimal = ZERO
     service_revenue: Decimal = ZERO
+    invoice_revenue: Decimal = ZERO
+    invoices_paid: int = 0
     cost_of_goods: Decimal = ZERO
     expenses_total: Decimal = ZERO
     orders_delivered: int = 0
@@ -199,7 +202,7 @@ class Report:
 
     @property
     def revenue(self) -> Decimal:
-        return self.product_sales + self.shipping_income + self.service_revenue
+        return self.product_sales + self.shipping_income + self.service_revenue + self.invoice_revenue
 
     @property
     def gross_profit(self) -> Decimal:
@@ -245,6 +248,15 @@ def build_report(period: Period) -> Report:
         .annotate(count=Count("id"), revenue=Coalesce(Sum("amount_charged"), Value(ZERO), output_field=MONEY))
         .order_by("-revenue")
     )
+
+    # Standalone invoices (not from an order/appointment) count on their payment date.
+    paid_invoices = (
+        Invoice.objects.active()
+        .standalone()
+        .filter(paid_on__gte=period.start, paid_on__lte=period.end, amount_paid__gt=0)
+    )
+    report.invoice_revenue = _sum(paid_invoices, "amount_paid")
+    report.invoices_paid = paid_invoices.count()
 
     expenses = Expense.objects.filter(date__gte=period.start, date__lte=period.end)
     report.expenses_total = _sum(expenses, "amount")
@@ -295,6 +307,14 @@ def monthly_trend(months: int = 12, end: date | None = None) -> list[dict]:
         .values("m")
         .annotate(v=Sum("amount_charged"))
     )
+    invoiced = by_month(
+        Invoice.objects.active()
+        .standalone()
+        .filter(paid_on__gte=first, paid_on__lte=end, amount_paid__gt=0)
+        .annotate(m=TruncMonth("paid_on"))
+        .values("m")
+        .annotate(v=Sum("amount_paid"))
+    )
     expenses = by_month(
         Expense.objects.filter(date__gte=first, date__lte=end)
         .annotate(m=TruncMonth("date"))
@@ -305,7 +325,7 @@ def monthly_trend(months: int = 12, end: date | None = None) -> list[dict]:
     series = []
     for i in range(months):
         month = _add_months(first, i)
-        revenue = (sales.get(month) or ZERO) + (shipping.get(month) or ZERO) + (services.get(month) or ZERO)
+        revenue = sum((source.get(month) or ZERO for source in (sales, shipping, services, invoiced)), ZERO)
         cost = cogs.get(month) or ZERO
         spent = expenses.get(month) or ZERO
         series.append(

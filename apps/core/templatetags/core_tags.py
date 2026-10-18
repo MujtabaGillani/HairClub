@@ -82,3 +82,9 @@ def bs_widget(bound_field, extra_classes=""):
     if bound_field.help_text:
         attrs["aria-describedby"] = f"{bound_field.auto_id}_help"
     return bound_field.as_widget(attrs=attrs)
+
+
+@register.filter
+def pdf_text(value):
+    """Swap characters the PDF base fonts can't draw (true minus sign) for safe equivalents."""
+    return str(value).replace("\u2212", "-")

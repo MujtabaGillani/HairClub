@@ -407,6 +407,263 @@
     setTimeout(() => svg.classList.add("is-static"), 700);
   }
 
+  /* ---------- Invoice editor: item rows + live preview ---------- */
+  const invoiceForm = $("[data-invoice-editor]");
+  if (invoiceForm) {
+    const doc = $("[data-invoice-doc]");
+    const rowsBox = $("[data-item-rows]", invoiceForm);
+    const template = $("template[data-item-template]", invoiceForm);
+    const totalForms = invoiceForm.querySelector("input[name=items-TOTAL_FORMS]");
+    const symbol = invoiceForm.dataset.currency || "";
+    const MINUS = "−";
+    const fmtMoney = (v) => {
+      const n = Math.round((Number(v) || 0) * 100) / 100;
+      const body = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      return `${n < 0 ? MINUS : ""}${symbol} ${body}`;
+    };
+    const fmtDate = (value) => {
+      if (!value) return "";
+      const d = new Date(`${value}T00:00:00`);
+      return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    };
+    const num = (name) => Math.max(parseFloat(invoiceForm.querySelector(`[name=${name}]`)?.value) || 0, 0);
+    const round2 = (n) => Math.round(n * 100) / 100;
+
+    const visibleRows = () => $$("[data-item-row]", rowsBox).filter((r) => !r.classList.contains("is-removed"));
+
+    function readItems() {
+      return visibleRows().map((row) => {
+        const q = parseFloat(row.querySelector("input[name$='-quantity']").value) || 0;
+        const price = parseFloat(row.querySelector("input[name$='-unit_price']").value) || 0;
+        return { q, desc: row.querySelector("input[name$='-description']").value.trim(), price, total: round2(q * price) };
+      });
+    }
+
+    function setText(bind, text, format) {
+      $$(`[data-bind="${bind}"]`, doc).forEach((el) => {
+        if (format === "multiline") {
+          el.textContent = "";
+          text.split("\n").forEach((line, i) => {
+            if (i) el.appendChild(document.createElement("br"));
+            el.append(line);
+          });
+        } else {
+          el.textContent = text;
+        }
+      });
+      $$(`[data-hide-empty="${bind}"]`, doc).forEach((el) => { el.hidden = !text.trim(); });
+    }
+
+    function update() {
+      // Simple fields
+      $$("[data-bind]", doc).forEach((el) => {
+        const name = el.dataset.bind;
+        const input = invoiceForm.querySelector(`[name=${name}]`);
+        if (!input) return;
+        let value = input.value || "";
+        if (el.dataset.format === "date") value = fmtDate(value);
+        if (el.dataset.format === "choice") value = input.value ? input.options[input.selectedIndex].text : "";
+        if (name === "customer_name" && !value) value = "Customer name";
+        if (name === "tax_percent") value = String(num("tax_percent"));
+        setText(name, value, el.dataset.format);
+      });
+
+      // Items
+      const items = readItems();
+      const tbody = $("[data-items]", doc);
+      tbody.innerHTML = "";
+      (items.length ? items : [{ q: 1, desc: "—", price: 0, total: 0 }]).forEach((it) => {
+        const tr = document.createElement("tr");
+        [
+          ["qty", String(it.q % 1 ? it.q : Math.round(it.q))],
+          ["", it.desc || "—"],
+          ["num", fmtMoney(it.price)],
+          ["num", fmtMoney(it.total)],
+        ].forEach(([cls, text]) => {
+          const td = document.createElement("td");
+          if (cls) td.className = cls;
+          td.textContent = text;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      // Totals: same formula as Invoice.recalculate() on the server.
+      const subtotal = round2(items.reduce((sum, it) => sum + it.total, 0));
+      const discount = num("discount_amount");
+      const taxable = Math.max(subtotal - discount, 0);
+      const tax = round2((taxable * num("tax_percent")) / 100);
+      const delivery = num("delivery_charge");
+      const total = round2(taxable + tax + delivery);
+      const paid = num("amount_paid");
+      const values = { subtotal, discount, delivery, tax, total, paid, balance: round2(total - paid) };
+      Object.entries(values).forEach(([key, value]) => {
+        const cell = $(`[data-total="${key}"]`, doc);
+        if (cell) cell.textContent = key === "discount" ? `${MINUS} ${fmtMoney(value)}` : fmtMoney(value);
+        const row = $(`[data-hide-zero="${key}"]`, doc);
+        if (row) row.hidden = !value;
+      });
+    }
+
+    function addRow() {
+      const index = parseInt(totalForms.value, 10);
+      const html = template.innerHTML.replace(/__prefix__/g, String(index));
+      rowsBox.insertAdjacentHTML("beforeend", html);
+      totalForms.value = String(index + 1);
+      const row = rowsBox.lastElementChild;
+      const qty = row.querySelector("input[name$='-quantity']");
+      if (qty && !qty.value) qty.value = "1";
+      row.querySelector("input[name$='-description']")?.focus();
+      update();
+    }
+
+    function removeRow(row) {
+      if (visibleRows().length <= 1) {
+        // Keep one row; clear it instead.
+        $$("input[type=text], input[type=number]", row).forEach((i) => { i.value = i.name.endsWith("-quantity") ? "1" : ""; });
+      } else {
+        const del = row.querySelector("input[name$='-DELETE']");
+        if (del) del.checked = true;
+        row.classList.add("is-removed");
+      }
+      update();
+    }
+
+    /* Item picker: suggest existing products & services; picking one fills the unit price.
+       Free text is always allowed, so custom lines can still be typed by hand. */
+    const catalog = (() => {
+      try { return JSON.parse($("#invoice-item-catalog")?.textContent || "[]"); } catch (_) { return []; }
+    })();
+    const listbox = document.createElement("ul");
+    listbox.className = "item-lookup";
+    listbox.id = "item-lookup-list";
+    listbox.setAttribute("role", "listbox");
+    listbox.hidden = true;
+    let lookupInput = null;
+    let matches = [];
+    let active = -1;
+
+    function closeLookup() {
+      listbox.hidden = true;
+      active = -1;
+      if (lookupInput) {
+        lookupInput.setAttribute("aria-expanded", "false");
+        lookupInput.removeAttribute("aria-activedescendant");
+      }
+    }
+
+    function highlight(index) {
+      active = index;
+      $$("[role=option]", listbox).forEach((opt, i) => opt.setAttribute("aria-selected", i === index ? "true" : "false"));
+      const current = $(`#item-lookup-opt-${index}`, listbox);
+      if (current) {
+        lookupInput.setAttribute("aria-activedescendant", current.id);
+        current.scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function openLookup(input) {
+      lookupInput = input;
+      const q = input.value.trim().toLowerCase();
+      const terms = q.split(/\s+/).filter(Boolean);
+      matches = catalog.filter((item) => terms.every((t) => item.search.includes(t))).slice(0, 12);
+      listbox.innerHTML = "";
+      if (!matches.length) { closeLookup(); return; }
+      let group = "";
+      matches.forEach((item, i) => {
+        if (item.kind !== group) {
+          group = item.kind;
+          const head = document.createElement("li");
+          head.className = "item-lookup-group";
+          head.setAttribute("role", "presentation");
+          head.textContent = group === "product" ? "Products" : "Services";
+          listbox.appendChild(head);
+        }
+        const li = document.createElement("li");
+        li.id = `item-lookup-opt-${i}`;
+        li.setAttribute("role", "option");
+        li.setAttribute("aria-selected", "false");
+        li.dataset.index = i;
+        const name = document.createElement("span");
+        name.className = "item-lookup-name";
+        name.textContent = item.name;
+        const meta = document.createElement("span");
+        meta.className = "item-lookup-meta";
+        meta.textContent = item.meta;
+        const price = document.createElement("span");
+        price.className = "item-lookup-price";
+        price.textContent = item.price ? fmtMoney(item.price) : "Set price";
+        li.append(name, price, meta);
+        listbox.appendChild(li);
+      });
+      input.closest("[data-item-row] > div").appendChild(listbox);
+      input.setAttribute("aria-controls", listbox.id);
+      input.setAttribute("aria-expanded", "true");
+      listbox.hidden = false;
+      highlight(-1);
+    }
+
+    function choose(index) {
+      const item = matches[index];
+      if (!item || !lookupInput) return;
+      const row = lookupInput.closest("[data-item-row]");
+      lookupInput.value = item.name;
+      const price = row.querySelector("input[name$='-unit_price']");
+      price.value = item.price ? item.price.toFixed(2) : "";
+      const qty = row.querySelector("input[name$='-quantity']");
+      if (!qty.value) qty.value = "1";
+      closeLookup();
+      update();
+      (item.price ? qty : price).focus();
+      (item.price ? qty : price).select?.();
+    }
+
+    rowsBox.addEventListener("input", (e) => {
+      if (e.target.matches("[data-item-lookup]")) openLookup(e.target);
+    });
+    rowsBox.addEventListener("focusin", (e) => {
+      if (e.target.matches("[data-item-lookup]")) openLookup(e.target);
+    });
+    rowsBox.addEventListener("keydown", (e) => {
+      if (!e.target.matches("[data-item-lookup]") || listbox.hidden) {
+        if (e.key === "ArrowDown" && e.target.matches("[data-item-lookup]")) openLookup(e.target);
+        return;
+      }
+      if (e.key === "ArrowDown") { e.preventDefault(); highlight(Math.min(active + 1, matches.length - 1)); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); highlight(Math.max(active - 1, 0)); }
+      else if (e.key === "Enter" && active >= 0) { e.preventDefault(); choose(active); }
+      else if (e.key === "Escape") { e.preventDefault(); closeLookup(); }
+      else if (e.key === "Tab") closeLookup();
+    });
+    // mousedown (not click) so the choice lands before the input loses focus.
+    listbox.addEventListener("mousedown", (e) => {
+      const opt = e.target.closest("[role=option]");
+      if (!opt) return;
+      e.preventDefault();
+      choose(parseInt(opt.dataset.index, 10));
+    });
+    listbox.addEventListener("mousemove", (e) => {
+      const opt = e.target.closest("[role=option]");
+      if (opt && parseInt(opt.dataset.index, 10) !== active) highlight(parseInt(opt.dataset.index, 10));
+    });
+    document.addEventListener("mousedown", (e) => {
+      if (!listbox.hidden && !listbox.contains(e.target) && e.target !== lookupInput) closeLookup();
+    });
+
+    invoiceForm.addEventListener("click", (e) => {
+      if (e.target.closest("[data-add-item]")) addRow();
+      const remove = e.target.closest("[data-remove-item]");
+      if (remove) removeRow(remove.closest("[data-item-row]"));
+    });
+    // Rows already marked for deletion (re-rendered after a validation error) stay hidden.
+    $$("[data-item-row]", rowsBox).forEach((row) => {
+      if (row.querySelector("input[name$='-DELETE']")?.checked) row.classList.add("is-removed");
+    });
+    invoiceForm.addEventListener("input", update);
+    invoiceForm.addEventListener("change", update);
+    update();
+  }
+
   /* ---------- Stock adjustment modal ---------- */
   const adjustModal = $("#adjustModal");
   if (adjustModal) {

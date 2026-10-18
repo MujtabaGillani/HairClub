@@ -17,6 +17,15 @@ Website for a non-surgical hair replacement salon. It has four modules:
 * **Expenses:** salaries, rent, utilities, food, entertainment, marketing, courier and so on (categories editable in the Django admin). Stock purchases are *not* expenses; their cost is counted as cost of goods sold when items sell.
 * **Profit & loss page:** for any period it shows revenue, cost of goods sold, gross profit, expenses by category and net profit, plus a 12-month revenue-vs-costs chart, product profitability and open orders not yet counted.
 
+### Invoices
+
+* **Editor with live preview** (Dashboard → Finance → Invoices): fill the form on the left and the branded invoice updates on the right. Totals are recalculated on the server when you save.
+* **From an order or appointment:** the "Create invoice" button on those pages pre-fills the customer and items.
+* **PDF** is generated server-side with `xhtml2pdf` (pure Python, no system libraries needed).
+* **Send:** by email with the PDF attached, or on WhatsApp with a private link (`/invoice/<token>/`) where the customer can view and download it. The link only works once the invoice has been sent.
+* **Status:** draft → sent → partly paid / paid, or void. Overdue is shown automatically past the due date.
+* **Finance:** payments on standalone invoices count as revenue on the payment date. Invoices created from an order or appointment are not counted again, and void invoices are ignored.
+
 Stack: Django 5.2 LTS · Python 3.12 · django-allauth (Google sign-in) · Bootstrap 5.3 · vanilla JS · SQLite (dev) / PostgreSQL (prod).
 
 ---

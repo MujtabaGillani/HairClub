@@ -1,0 +1,10 @@
+{% load core_tags %}<div class="invoice-item-row{% if f.errors %} has-error{% endif %}" data-item-row>
+  <div><label class="visually-hidden" for="{{ f.quantity.id_for_label }}">Quantity</label>{{ f.quantity|bs_widget }}</div>
+  <div><label class="visually-hidden" for="{{ f.description.id_for_label }}">Description</label>{{ f.description|bs_widget }}</div>
+  <div><label class="visually-hidden" for="{{ f.unit_price.id_for_label }}">Unit price</label>{{ f.unit_price|bs_widget:"text-end" }}</div>
+  <div class="invoice-item-remove">
+    <span class="d-none">{{ f.DELETE }}</span>
+    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" data-remove-item aria-label="Remove item"><i class="bi bi-x-lg"></i></button>
+  </div>
+  {% if f.errors %}<div class="invoice-item-errors">{% for field in f %}{% for e in field.errors %}<span>{{ field.label }}: {{ e }}</span>{% endfor %}{% endfor %}</div>{% endif %}
+</div>

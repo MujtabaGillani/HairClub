@@ -65,6 +65,14 @@
 
   <div class="col-xl-4">
     <div class="panel mb-4">
+      <div class="panel-header"><h2>Invoice</h2></div>
+      <div class="panel-body d-grid gap-2">
+        {% for inv in order.invoices.all %}<a href="{{ inv.get_absolute_url }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-receipt-cutoff me-1"></i>{{ inv.number }} · {{ inv.display_status.0 }}</a>{% endfor %}
+        <a href="{% url 'dashboard:invoice_create' %}?order={{ order.number }}" class="btn btn-dark btn-sm"><i class="bi bi-plus-lg me-1"></i>Create invoice</a>
+      </div>
+    </div>
+
+    <div class="panel mb-4">
       <div class="panel-header"><h2>Profitability</h2>{% if order.status != "delivered" %}<span class="small text-muted">counts when delivered</span>{% endif %}</div>
       <div class="panel-body">
         <dl class="cost-summary mb-0">

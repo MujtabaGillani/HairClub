@@ -40,6 +40,7 @@
             <tr><td>Product sales <span class="text-muted small">({{ report.units_sold }} unit{{ report.units_sold|pluralize }})</span></td><td class="text-end">{{ report.product_sales|money }}</td></tr>
             <tr><td>Shipping charged to customers</td><td class="text-end">{{ report.shipping_income|money }}</td></tr>
             <tr><td>Service income <span class="text-muted small">({{ report.services_completed }} completed)</span></td><td class="text-end">{{ report.service_revenue|money }}</td></tr>
+            {% if report.invoice_revenue %}<tr><td>Invoiced sales <span class="text-muted small">({{ report.invoices_paid }} paid invoice{{ report.invoices_paid|pluralize }})</span></td><td class="text-end">{{ report.invoice_revenue|money }}</td></tr>{% endif %}
             <tr class="pl-subtotal"><td>Total revenue</td><td class="text-end">{{ report.revenue|money }}</td></tr>
             <tr><td>Cost of goods sold</td><td class="text-end">− {{ report.cost_of_goods|money }}</td></tr>
             <tr class="pl-subtotal"><td>Gross profit{% if report.gross_margin is not None %} <span class="text-muted small fw-normal">{{ report.gross_margin }}%</span>{% endif %}</td><td class="text-end">{{ report.gross_profit|money }}</td></tr>

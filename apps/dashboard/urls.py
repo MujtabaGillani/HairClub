@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import appointments, finance, inventory, orders, overview, products, services, settings
+from .views import appointments, finance, inventory, invoices, orders, overview, products, services, settings
 
 app_name = "dashboard"
 
@@ -30,6 +30,13 @@ urlpatterns = [
     path("orders/<str:number>/", orders.OrderDetailView.as_view(), name="order_detail"),
     path("orders/<str:number>/status/", orders.OrderStatusView.as_view(), name="order_status"),
     path("orders/<str:number>/mark-paid/", orders.OrderMarkPaidView.as_view(), name="order_mark_paid"),
+    # Invoices
+    path("invoices/", invoices.InvoiceListView.as_view(), name="invoice_list"),
+    path("invoices/new/", invoices.InvoiceEditorView.as_view(), name="invoice_create"),
+    path("invoices/<int:pk>/", invoices.InvoiceDetailView.as_view(), name="invoice_detail"),
+    path("invoices/<int:pk>/edit/", invoices.InvoiceEditorView.as_view(), name="invoice_update"),
+    path("invoices/<int:pk>/pdf/", invoices.InvoicePdfView.as_view(), name="invoice_pdf"),
+    path("invoices/<int:pk>/<slug:action>/", invoices.InvoiceActionView.as_view(), name="invoice_action"),
     # Finance
     path("finance/", finance.FinanceOverviewView.as_view(), name="finance"),
     path("finance/expenses/", finance.ExpenseListView.as_view(), name="expense_list"),

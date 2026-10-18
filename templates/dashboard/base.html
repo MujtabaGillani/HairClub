@@ -26,6 +26,7 @@
       <li><a href="{% url 'dashboard:service_list' %}" class="{% if nav == 'services' %}active{% endif %}"><i class="bi bi-scissors"></i>Services</a></li>
       <li class="nav-section">Finance</li>
       <li><a href="{% url 'dashboard:finance' %}" class="{% if nav == 'finance' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i>Profit &amp; loss</a></li>
+      <li><a href="{% url 'dashboard:invoice_list' %}" class="{% if nav == 'invoices' %}active{% endif %}"><i class="bi bi-receipt-cutoff"></i>Invoices</a></li>
       <li><a href="{% url 'dashboard:expense_list' %}" class="{% if nav == 'expenses' %}active{% endif %}"><i class="bi bi-wallet2"></i>Expenses</a></li>
       <li class="nav-section">Account</li>
       <li><a href="{% url 'dashboard:settings' %}" class="{% if nav == 'settings' %}active{% endif %}"><i class="bi bi-gear"></i>Store settings</a></li>

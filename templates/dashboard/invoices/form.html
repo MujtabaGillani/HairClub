@@ -1,0 +1,88 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags %}
+{% block page_title %}{% if invoice.pk %}Edit {{ invoice.number }}{% else %}New invoice{% endif %}{% endblock %}
+{% block breadcrumbs %}<nav aria-label="breadcrumb"><ol class="breadcrumb mb-0 small"><li class="breadcrumb-item"><a href="{% url 'dashboard:invoice_list' %}">Invoices</a></li><li class="breadcrumb-item active" aria-current="page">{% if invoice.pk %}Edit{% else %}New{% endif %}</li></ol></nav>{% endblock %}
+{% block heading %}{% if invoice.pk %}Edit invoice {{ invoice.number }}{% else %}New invoice{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+<form method="post" novalidate data-invoice-editor data-currency="{{ currency_symbol }}">
+  {% csrf_token %}
+  {% if not invoice.pk %}
+    {% if form.initial.order %}<input type="hidden" name="source_order" value="{{ form.initial.order.number }}">{% endif %}
+    {% if form.initial.appointment %}<input type="hidden" name="source_appointment" value="{{ form.initial.appointment.reference }}">{% endif %}
+  {% endif %}
+  {% if source %}
+    <div class="alert bg-cream border small d-flex gap-2 align-items-start">
+      <i class="bi bi-link-45deg fs-5 lh-1"></i>
+      <div>Created from {% if source.number %}order <strong>{{ source.number }}</strong>{% else %}appointment <strong>{{ source.reference }}</strong>{% endif %}. That sale is already in Profit &amp; loss, so this invoice won't be counted again.</div>
+    </div>
+  {% endif %}
+  {% if form.errors or formset.non_form_errors %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-octagon me-1"></i>Please fix the highlighted fields.{% for e in formset.non_form_errors %} {{ e }}{% endfor %}</div>
+  {% endif %}
+
+  <div class="invoice-workspace">
+    <div class="invoice-form">
+      <div class="panel mb-4"><div class="panel-body">
+        <h2 class="form-section">Invoice details</h2>
+        <div class="row">
+          <div class="col-sm-6">{{ form.number.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.invoice_date.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.due_date.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.delivery_date.as_field_group }}</div>
+        </div>
+        {{ form.reference.as_field_group }}
+
+        <h2 class="form-section mt-2">Customer</h2>
+        {{ form.customer_name.as_field_group }}
+        <div class="row">
+          <div class="col-sm-6">{{ form.phone.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.email.as_field_group }}</div>
+        </div>
+        {{ form.billing_address.as_field_group }}
+        {{ form.shipping_address.as_field_group }}
+
+        <div class="d-flex justify-content-between align-items-center mt-2 mb-2">
+          <h2 class="form-section mb-0">Items</h2>
+          <button type="button" class="btn btn-outline-dark btn-sm" data-add-item><i class="bi bi-plus-lg me-1"></i>Add item</button>
+        </div>
+        {{ formset.management_form }}
+        <div class="invoice-item-head d-none d-sm-grid" aria-hidden="true"><span>Qty</span><span>Description</span><span>Unit price</span><span></span></div>
+        <div data-item-rows>
+          {% for item_form in formset %}
+            {% include "dashboard/invoices/partials/item_row.html" with f=item_form %}
+          {% endfor %}
+        </div>
+        {{ item_catalog|json_script:"invoice-item-catalog" }}
+        <template data-item-template>{% include "dashboard/invoices/partials/item_row.html" with f=formset.empty_form %}</template>
+
+        <h2 class="form-section mt-4">Payment &amp; totals</h2>
+        <div class="row">
+          <div class="col-sm-6">{{ form.discount_amount.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.delivery_charge.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.tax_percent.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.payment_method.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.amount_paid.as_field_group }}</div>
+          <div class="col-sm-6">{{ form.paid_on.as_field_group }}</div>
+        </div>
+
+        <h2 class="form-section mt-2">Notes &amp; terms</h2>
+        {{ form.notes.as_field_group }}
+        {{ form.payment_terms.as_field_group }}
+      </div></div>
+    </div>
+
+    <div class="invoice-preview-col">
+      <div class="invoice-preview-label"><i class="bi bi-eye me-1"></i>Live preview</div>
+      <div class="invoice-preview-frame">
+        {% include "invoices/partials/document.html" with invoice=invoice items=preview_items %}
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky-actions d-flex flex-wrap gap-2 justify-content-end">
+    <a href="{% if invoice.pk %}{{ invoice.get_absolute_url }}{% else %}{% url 'dashboard:invoice_list' %}{% endif %}" class="btn btn-outline-dark">Cancel</a>
+    <button type="submit" class="btn btn-dark"><i class="bi bi-check2 me-1"></i>Save invoice</button>
+  </div>
+</form>
+{% endblock %}

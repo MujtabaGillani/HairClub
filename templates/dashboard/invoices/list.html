@@ -1,0 +1,69 @@
+{% extends "dashboard/base.html" %}
+{% load core_tags dashboard_tags %}
+{% block page_title %}Invoices{% endblock %}
+{% block heading %}Invoices{% endblock %}
+{% block actions %}<a href="{% url 'dashboard:invoice_create' %}" class="btn btn-dark btn-sm btn-add" aria-label="New invoice"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">New invoice</span></a>{% endblock %}
+
+{% block dashboard_content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><a href="?status=unpaid" class="text-reset text-decoration-none"><div class="kpi-card"><div class="kpi-icon gold"><i class="bi bi-hourglass-split"></i></div><div><div class="kpi-label">Outstanding</div><div class="kpi-value">{{ outstanding_value|money }}</div><div class="kpi-sub">{{ outstanding_count }} unpaid invoice{{ outstanding_count|pluralize }}</div></div></div></a></div>
+  <div class="col-6 col-xl-3"><a href="?status=overdue" class="text-reset text-decoration-none"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-exclamation-triangle"></i></div><div><div class="kpi-label">Overdue</div><div class="kpi-value">{{ overdue_count }}</div><div class="kpi-sub">past the due date</div></div></div></a></div>
+  <div class="col-6 col-xl-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div><div><div class="kpi-label">Paid this month</div><div class="kpi-value">{{ paid_this_month|money }}</div></div></div></div>
+  <div class="col-6 col-xl-3"><a href="?status=draft" class="text-reset text-decoration-none"><div class="kpi-card"><div class="kpi-icon ink"><i class="bi bi-pencil-square"></i></div><div><div class="kpi-label">Drafts</div><div class="kpi-value">{{ draft_count }}</div><div class="kpi-sub">not sent yet</div></div></div></a></div>
+</div>
+
+<nav class="tabs-pills mb-3" aria-label="Invoice status">
+  <a href="?{% querystring status=None page=None %}" class="{% if not current_status %}active{% endif %}">All</a>
+  {% for key, label in status_filters.items %}<a href="?{% querystring status=key page=None %}" class="{% if current_status == key %}active{% endif %}">{{ label }}</a>{% endfor %}
+</nav>
+
+<div class="panel">
+  <form method="get" class="panel-header filter-panel-form" role="search" aria-label="Filter invoices">
+    {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+    <div class="filter-bar flex-grow-1">
+      <input type="search" name="q" value="{{ request.GET.q }}" class="form-control search-input" placeholder="Invoice #, customer, phone or reference…" aria-label="Search invoices">
+      {% include "dashboard/partials/date_range.html" %}
+      {% include "dashboard/partials/sort_select.html" %}
+      <button class="btn btn-outline-dark btn-sm" type="submit">Apply</button>
+      {% if request.GET %}<a href="{% url 'dashboard:invoice_list' %}" class="small">Clear all</a>{% endif %}
+    </div>
+    <div class="filter-summary small text-muted"><strong class="text-body">{{ paginator.count }}</strong> invoice{{ paginator.count|pluralize }}</div>
+  </form>
+  {% if invoices %}
+  <div class="table-responsive">
+    <table class="table align-middle table-stack">
+      <thead><tr>
+        {% sort_th "Invoice" "oldest" "newest" %}
+        {% sort_th "Customer" "customer" "customer" %}
+        {% sort_th "Due" "due" "due" %}
+        {% sort_th "Total" "total_desc" "total_desc" "text-end" %}
+        {% sort_th "Balance" "balance_desc" "balance_desc" "text-end" %}
+        <th scope="col">Status</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr></thead>
+      <tbody>
+        {% for inv in invoices %}
+          {% with s=inv.display_status %}
+          <tr>
+            <td data-main><a href="{{ inv.get_absolute_url }}" class="fw-semibold">{{ inv.number }}</a>{% include "partials/copy_button.html" with value=inv.number label="invoice number" %}<div class="small text-muted">{{ inv.invoice_date|date:"j M Y" }}{% if inv.reference %} · {{ inv.reference }}{% endif %}</div></td>
+            <td data-label="Customer">{{ inv.customer_name }}<div class="small text-muted">{{ inv.phone|default:inv.email }}</div></td>
+            <td data-label="Due">{% if inv.due_date %}<span class="{% if inv.is_overdue %}text-danger fw-semibold{% endif %}">{{ inv.due_date|date:"j M Y" }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td data-label="Total" class="text-end fw-semibold">{{ inv.total|money }}</td>
+            <td data-label="Balance" class="text-end">{% if inv.balance_due > 0 and inv.status != "void" %}{{ inv.balance_due|money }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td data-label="Status"><span class="badge text-bg-{{ s.1 }}{% if s.1 == 'light' %} border{% endif %}">{{ s.0 }}</span></td>
+            <td data-actions class="text-end text-nowrap">
+              <a href="{% url 'dashboard:invoice_pdf' inv.pk %}?download=1" class="btn btn-sm btn-icon btn-outline-dark" title="Download PDF" aria-label="Download {{ inv.number }} as PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+              <a href="{{ inv.get_absolute_url }}" class="btn btn-sm btn-outline-dark">Open</a>
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="empty-state"><div class="empty-icon"><i class="bi bi-receipt-cutoff"></i></div><h2 class="h5">No invoices {% if request.GET %}match these filters{% else %}yet{% endif %}</h2><p class="text-muted">Create one from scratch, or from an order or appointment page.</p><a href="{% url 'dashboard:invoice_create' %}" class="btn btn-dark">New invoice</a></div>
+  {% endif %}
+</div>
+{% include "partials/pagination.html" %}
+{% endblock %}
