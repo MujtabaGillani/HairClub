@@ -22,14 +22,14 @@
           <dt>Reference</dt><dd class="fw-semibold">{{ appointment.reference }}</dd>
           <dt>Service</dt><dd>{{ appointment.service.name }} <span class="text-muted">({{ appointment.service.duration_minutes }} min)</span></dd>
           <dt>Date</dt><dd class="fw-semibold">{{ appointment.date|date:"l, j F Y" }}</dd>
-          <dt>Time</dt><dd class="fw-semibold">{{ appointment.time|time:"g:i A" }}{% if appointment.is_past %} <span class="badge text-bg-light border ms-1">Past</span>{% endif %}</dd>
+          <dt>Time</dt><dd class="fw-semibold">{{ appointment.time|time:"g:i A" }}{% if appointment.is_past %} <span class="badge bg-body-tertiary text-body border ms-1">Past</span>{% endif %}</dd>
           <dt>Client notes</dt><dd>{{ appointment.notes|default:"—"|linebreaksbr }}</dd>
         </dl>
       </div>
     </div>
 
     <div class="panel mb-4">
-      <div class="panel-header"><h2>Client</h2>{% if appointment.user %}<span class="badge text-bg-light border">Registered customer</span>{% endif %}</div>
+      <div class="panel-header"><h2>Client</h2>{% if appointment.user %}<span class="badge bg-body-tertiary text-body border">Registered customer</span>{% endif %}</div>
       <div class="panel-body">
         <dl class="dl-grid mb-3">
           <dt>Name</dt><dd>{{ appointment.full_name }}</dd>

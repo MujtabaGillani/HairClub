@@ -26,7 +26,7 @@
             {% if not product %}<td><a href="{% url 'dashboard:product_stock_history' m.product_id %}" class="text-reset">{{ m.product.name }}</a></td>{% endif %}
             <td class="fw-bold {% if m.quantity_change > 0 %}text-success{% else %}text-danger{% endif %}">{% if m.quantity_change > 0 %}+{% endif %}{{ m.quantity_change }}</td>
             <td>{{ m.stock_after }}</td>
-            <td><span class="badge text-bg-light border">{{ m.get_reason_display }}</span></td>
+            <td><span class="badge bg-body-tertiary text-body border">{{ m.get_reason_display }}</span></td>
             <td class="small">{% if m.reference %}<a href="{% url 'dashboard:order_detail' m.reference %}">{{ m.reference }}</a>{% endif %}{% if m.note %}<div class="text-muted">{{ m.note }}</div>{% endif %}</td>
             <td class="small text-muted">{% if m.created_by %}{{ m.created_by.get_full_name|default:m.created_by.email }}{% elif m.reason == "sale" %}Customer order{% else %}System{% endif %}</td>
           </tr>

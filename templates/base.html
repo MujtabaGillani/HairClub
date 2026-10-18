@@ -6,6 +6,17 @@
   <title>{% block title %}{{ site_settings.business_name }} | {{ site_settings.tagline }}{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}{{ site_settings.business_name }}: non-surgical hair replacement, premium hair patches and professional hair care products. Book a private consultation today.{% endblock %}">
   <meta name="theme-color" content="#1b1a1f">
+  <script>
+    /* Apply the saved (or system) colour theme before first paint to avoid a flash. */
+    (function () {
+      var theme;
+      try { theme = localStorage.getItem("hc-theme"); } catch (_) {}
+      if (theme !== "light" && theme !== "dark") {
+        theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-bs-theme", theme);
+    })();
+  </script>
   <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

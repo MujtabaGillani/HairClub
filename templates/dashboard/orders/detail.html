@@ -19,7 +19,7 @@
                 <td>
                   <div class="d-flex align-items-center gap-3">
                     {% with image=item.product.primary_image %}<img class="table-thumb" src="{% if image %}{{ image.image.url }}{% else %}{% static 'img/placeholder.svg' %}{% endif %}" alt="">{% endwith %}
-                    <div>{% if item.product %}<a href="{% url 'dashboard:product_update' item.product_id %}" class="fw-semibold text-reset">{{ item.product_name }}</a>{% else %}<span class="fw-semibold">{{ item.product_name }}</span> <span class="badge text-bg-light border">deleted</span>{% endif %}<div class="small text-muted">{{ item.sku }}</div></div>
+                    <div>{% if item.product %}<a href="{% url 'dashboard:product_update' item.product_id %}" class="fw-semibold text-reset">{{ item.product_name }}</a>{% else %}<span class="fw-semibold">{{ item.product_name }}</span> <span class="badge bg-body-tertiary text-body border">deleted</span>{% endif %}<div class="small text-muted">{{ item.sku }}</div></div>
                   </div>
                 </td>
                 <td class="text-center">{{ item.quantity }}</td>
@@ -40,7 +40,7 @@
     <div class="row g-4">
       <div class="col-md-6">
         <div class="panel h-100">
-          <div class="panel-header"><h2>Customer</h2>{% if order.user %}<span class="badge text-bg-light border">Registered</span>{% else %}<span class="badge text-bg-light border">Guest</span>{% endif %}</div>
+          <div class="panel-header"><h2>Customer</h2>{% if order.user %}<span class="badge bg-body-tertiary text-body border">Registered</span>{% else %}<span class="badge bg-body-tertiary text-body border">Guest</span>{% endif %}</div>
           <div class="panel-body">
             <p class="fw-semibold mb-1">{{ order.full_name }}</p>
             <p class="mb-1 small"><a href="mailto:{{ order.email }}">{{ order.email }}</a></p>

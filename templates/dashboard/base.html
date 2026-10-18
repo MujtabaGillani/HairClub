@@ -45,7 +45,10 @@
         {% block breadcrumbs %}{% endblock %}
         <h1 class="text-truncate">{% block heading %}Dashboard{% endblock %}</h1>
       </div>
-      <div class="d-flex gap-2 flex-shrink-0">{% block actions %}{% endblock %}</div>
+      <div class="d-flex gap-2 flex-shrink-0">
+        {% block actions %}{% endblock %}
+        <button class="btn btn-icon btn-outline-dark theme-toggle" type="button" data-theme-toggle aria-label="Dark mode" aria-pressed="false" hidden><i class="bi bi-moon-stars"></i><i class="bi bi-sun"></i></button>
+      </div>
     </header>
     <div class="dash-content">{% block dashboard_content %}{% endblock %}</div>
   </div>

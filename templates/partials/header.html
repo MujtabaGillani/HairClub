@@ -19,7 +19,10 @@
         <span class="brand-name">Hair<span>Club</span></span>
       </a>
 
-      <div class="d-flex align-items-center gap-2 order-lg-3">
+      <div class="header-actions d-flex align-items-center gap-2 order-lg-3">
+        <button class="header-icon btn btn-link border-0 theme-toggle" type="button" data-theme-toggle aria-label="Dark mode" aria-pressed="false" hidden>
+          <i class="bi bi-moon-stars"></i><i class="bi bi-sun"></i>
+        </button>
         <a class="header-icon" href="{% url 'wishlist:list' %}" aria-label="Favourites">
           <i class="bi bi-heart"></i>
           <span class="header-badge" data-wishlist-count data-count="{{ wishlist_count }}">{% if wishlist_count %}{{ wishlist_count }}{% endif %}</span>

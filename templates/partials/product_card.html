@@ -23,7 +23,7 @@
     <div class="product-category">{{ product.category.name }}</div>
     <h3 class="product-title"><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
     {% if product.show_price %}
-      <div><span class="price">{{ product.final_price|money }}</span>{% if product.has_discount %}<span class="price-old">{{ product.price|money }}</span>{% endif %}</div>
+      <div class="price-row"><span class="price">{{ product.final_price|money }}</span>{% if product.has_discount %}<span class="price-old">{{ product.price|money }}</span>{% endif %}</div>
     {% else %}
       <div class="price-request"><i class="bi bi-chat-dots me-1"></i>Price on request</div>
     {% endif %}

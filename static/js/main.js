@@ -6,6 +6,39 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  /* ---------- Light / dark theme ---------- */
+  // The initial theme is set by an inline script in <head>; this wires up the
+  // toggle. An explicit choice is remembered, otherwise we follow the OS.
+  const THEME_KEY = "hc-theme";
+  const root = document.documentElement;
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const storedTheme = () => {
+    try { return localStorage.getItem(THEME_KEY); } catch (_) { return null; }
+  };
+
+  function applyTheme(theme) {
+    // Suppress per-component transitions so the whole page switches at once.
+    root.classList.add("theme-switching");
+    root.setAttribute("data-bs-theme", theme);
+    $$("[data-theme-toggle]").forEach((btn) => {
+      btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+      btn.title = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+      btn.hidden = false;
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-switching")));
+  }
+
+  applyTheme(root.getAttribute("data-bs-theme") === "dark" ? "dark" : "light");
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-theme-toggle]")) return;
+    const next = root.getAttribute("data-bs-theme") === "dark" ? "light" : "dark";
+    try { localStorage.setItem(THEME_KEY, next); } catch (_) { /* private mode */ }
+    applyTheme(next);
+  });
+  darkQuery.addEventListener("change", (e) => {
+    if (!storedTheme()) applyTheme(e.matches ? "dark" : "light");
+  });
+
   /* ---------- Toasts ---------- */
   const toastStack = $("#toastStack");
 
